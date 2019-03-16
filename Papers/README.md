@@ -7,4 +7,5 @@
 # Code Links
 
 1. ProGAN:
+  
   * Pytorch: https://github.com/akanimax/pro_gan_pytorch
