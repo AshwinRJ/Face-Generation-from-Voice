@@ -8,3 +8,5 @@
 
 1. ProGAN:
     - Pytorch: https://github.com/akanimax/pro_gan_pytorch
+2. Speech2face:
+    - https://github.com/imatge-upc/speech2face

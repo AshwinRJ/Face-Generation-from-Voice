@@ -1,5 +1,5 @@
 # Face-Generation-from-Text-Descriptions
-11-785 Project Component
+11-785 Project (Spring 19) ---> NIPS 19 (Hopefully :P)
 
 
 -------------------
@@ -10,4 +10,3 @@
 #### Code:
 - https://github.com/SummitKwan/transparent_latent_gan
 - https://github.com/akanimax/T2F
-
