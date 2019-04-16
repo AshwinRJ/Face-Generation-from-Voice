@@ -1,6 +1,5 @@
 # Face-Generation-from-Speech
-11-785 Project (Spring 19) ---> NIPS 19 (Hopefully :P)
-
+11-785 Project (Spring 19)
 
 -------------------
 ## Imp Links
