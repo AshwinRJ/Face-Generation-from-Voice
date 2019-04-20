@@ -92,6 +92,6 @@ for k, i_d in enumerate(voice_list):
     #face_embed_data[face_list[k]]
 
 train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
-valid_dataset = EmbedLoader(face_valid_data, valid_face_list, voice_embed_data, valid_voice_list)
+valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list)
 
 
