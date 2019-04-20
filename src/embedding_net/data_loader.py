@@ -36,23 +36,21 @@ def write_to_json(data, filename='data.json'):
 
 
 class EmbedLoader(Dataset):
-    def __init__(self, face_data, face_list, voice_data, voice_list, repeats):
+    def __init__(self, face_data, face_list, voice_data, voice_list,eclass=50):
         self.face_data = face_data
         self.face_list = face_list
-
+        self.elements_per_class = eclass
         self.voice_data = voice_data
         self.voice_list = voice_list
 
         self.num_class = len(voice_list)
-        self.repeats = repeats
 
     def __len__(self):
         return self.num_class
 
     def __getitem__(self, index):
 
-        i, j = torch.randint(low=0, high=49, size=(1, 1)).item(), torch.randint(low=0, high=49, size=(1, 1)).item()
-
+        i, j = torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item(), torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item()
         face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
         voice_embed = torch.tensor(self.voice_data[self.voice_list[index]][j])
 
@@ -64,7 +62,7 @@ class EmbedLoader(Dataset):
 
 # Load the data files
 common_meta = pd.read_csv("data/vox2_meta.csv")
-face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
+#face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 # voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
 # List of face and voice IDs
@@ -84,9 +82,14 @@ for i in range(len(common_meta['Set '])):
        valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1])
 
 # Dummy voice data for now:
+## SANITY CHECK CODE
 voice_embed_data = {}
+face_embed_data = {}
+voice_list = train_voice_list + valid_voice_list
 for k, i_d in enumerate(voice_list):
-    voice_embed_data[i_d] = face_embed_data[face_list[k]]
+    voice_embed_data[i_d] = np.random.randn(50,512)
+    face_embed_data[i_d] = np.random.randn(50,512)
+    #face_embed_data[face_list[k]]
 
 train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
 valid_dataset = EmbedLoader(face_valid_data, valid_face_list, voice_embed_data, valid_voice_list)
