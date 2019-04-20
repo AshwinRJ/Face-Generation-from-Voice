@@ -4,8 +4,7 @@ import torch
 import torch.nn as nn
 import os
 import itertools
-## MODEL ARCHITECTURE
-## MLP with 3 units
+## MODEL ARCHITECTURE- MLP with N-Pair Loss
 
 
 class EmbeddingNet(nn.Module):
@@ -35,8 +34,8 @@ class NPairLoss():
 
     Here, in our experiments N=bs
     Computes N-Loss in the DML paradigm
-
-    Sohn, Kihyuk. "Improved Deep Metric Learning with Multi-class N-pair Loss Objective," Advances in Neural Information
+    Idea from https://dl.acm.org/citation.cfm?id=3240601 - Face Voice Matching Using Cross-Modal Embeddings 
+    Original Paper- Sohn, Kihyuk. "Improved Deep Metric Learning with Multi-class N-pair Loss Objective," Advances in Neural Information
     Processing Systems. 2016.
     http://papers.nips.cc/paper/6199-improved-deep-metric-learning-with-multi-class-n-pair-loss-objective
     """
@@ -44,8 +43,9 @@ class NPairLoss():
     def __init__(self, l2_penalty=0.02):
         super(NPairLoss, self).__init__()
         self.l2_reg = l2_penalty
+        self.l2_loss = torch.nn.MSELoss()
 
-    def forward(self, voice_embeds, face_embeds,embeddings, target):
+    def forward(self, voice_embeds, face_embeds):
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
         #positive_indices = torch.arange(len(face_embeds))
@@ -55,11 +55,9 @@ class NPairLoss():
         negatives = [torch.cat(face_embeds[negative_indices[i]],dim=0) for i in range(N)]
         #negatives = embeddings[n_negatives]    # (n, n-1, embedding_size)
 
-        loss = self.n_pair_loss(anchors, positives, negatives) + self.l2_reg * self.l2_loss(anchors, positives)
-
+        loss = self.n_pair_loss(anchors, positives, negatives) +self.l2_reg*self.l2_loss(anchors,positives)
         return loss
 
-    @staticmethod
     def n_pair_loss(anchors, positives, negatives):
         """
         Calculates N-Pair loss between anchor positive and negative examples
@@ -74,13 +72,3 @@ class NPairLoss():
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
         loss = torch.mean(torch.log(1+x))
         return loss
-
-"""
-    def l2_loss(anchors, positives):
-        
-        Calculates L2 norm regularization loss
-        :param anchors: A torch.Tensor, (n, embedding_size)
-        :param positives: A torch.Tensor, (n, embedding_size)
-        :return: A scalar
-        return torch.sum(anchors ** 2 + positives ** 2) / anchors.shape[0]
-"""

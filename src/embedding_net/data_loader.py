@@ -35,7 +35,7 @@ def write_to_json(data, filename='data.json'):
         json.dump(data, outfile)
 
 
-class ImageLoader(Dataset):
+class EmbedLoader(Dataset):
     def __init__(self, face_data, face_list, voice_data, voice_list, repeats):
         self.face_data = face_data
         self.face_list = face_list
@@ -51,8 +51,7 @@ class ImageLoader(Dataset):
 
     def __getitem__(self, index):
 
-        i, j = torch.randint(low=0, high=49, size=(1, 1)).item(
-        ), torch.randint(low=0, high=49, size=(1, 1)).item()
+        i, j = torch.randint(low=0, high=49, size=(1, 1)).item(), torch.randint(low=0, high=49, size=(1, 1)).item()
 
         face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
         voice_embed = torch.tensor(self.voice_data[self.voice_list[index]][j])
@@ -70,28 +69,26 @@ face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
 # List of face and voice IDs
 # Contains the class names
-face_list = [item[:-1] for item in common_meta['VGGFace2 ID '].tolist()]
-voice_list = [item[:-1] for item in common_meta['VoxCeleb2 ID '].tolist()]
+dont_include = ['n003729 ' , 'n003754 ']
+
+train_face_list, valid_face_list = [], []
+train_voice_list, valid_voice_list = [], []
+
+for i in range(len(common_meta['Set '])):
+   if common_meta['Set '].iloc[i] == "dev " and common_meta['VGGFace2 ID '].iloc[i] not in dont_include:
+       train_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1])
+       train_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1])
+
+   elif common_meta['Set '].iloc[i] == "test " and common_meta['VGGFace2 ID '].iloc[i][:-1] not in dont_include:
+       valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1])
+       valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1])
 
 # Dummy voice data for now:
 voice_embed_data = {}
 for k, i_d in enumerate(voice_list):
     voice_embed_data[i_d] = face_embed_data[face_list[k]]
 
-dataset = ImageLoader(face_embed_data, face_list, voice_embed_data, voice_list, repeats=1)
-loader = torch.utils.data.DataLoader(dataset, batch_size=6, shuffle=False, num_workers=8)
+train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
+valid_dataset = EmbedLoader(face_valid_data, valid_face_list, voice_embed_data, valid_voice_list)
 
 
-# Example Train Loop
-
-num_epochs = 2
-repeat_factor = 4  # num_repeats_over_data
-
-for epoch in range(num_epochs):
-    for r in range(repeat_factor):
-        for embed in loader:
-
-            # Todo
-
-            pass
-        print("Epoch: {:02} | Num of Pass over data {}".format(epoch, r))
