@@ -173,8 +173,8 @@ def _read_vec_flt_binary(fd):
 
 def get_data_loaders(bs):
     # Load the data files
-    common_meta = pd.read_csv('vox2_meta.csv')
-    face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
+    common_meta = pd.read_csv('../vox2_meta.csv')
+    face_embed_data = load_json("../vggface2_voxceleb2_embeddings.json")
     # voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
     # List of face and voice IDs
@@ -197,17 +197,17 @@ def get_data_loaders(bs):
     train_face_list = train_face_list[:-200]
     valid_voice_list = train_voice_list[-200:]
     train_voice_list = train_voice_list[:-200]
-    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
-    valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
-    train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_train.ark')}
+    train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('../data/xvec_v2_train.ark')}
     assert(len(list(train_xvec.keys()))==1092009)
 
-    trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_train','r').readlines()}
+    trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('../data/spk2utt_train','r').readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
+    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
+    valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
     ## For Test data
-    test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_test.ark')}
+    test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('../data/xvec_v2_test.ark')}
     assert(len(list(test_xvec.keys()))==36237)
-    test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_test','r').readlines()}
+    test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('../data/spk2utt_test','r').readlines()}
     assert(len(list(test_spk2utt.keys()))==118)
 
 
