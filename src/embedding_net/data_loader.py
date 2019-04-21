@@ -203,13 +203,15 @@ def get_data_loaders(bs):
             train_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
         elif common_meta['Set '].iloc[i] == "test " and common_meta['VGGFace2 ID '].iloc[i][:-1] not in dont_include:
-            valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
-            valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
+            test_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
+            test_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-    dev_face_list = train_face_list[-200:]
+    valid_face_list = train_face_list[-200:]
     train_face_list = train_face_list[:-200]
-    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_spk_list}
-    dev_spk2utt = {spk:trainval_spk2utt[spk] for spk in dev_spk_list}
+    valid_voice_list = train_voice_list[-200:]
+    train_voice_list = train_voice_list[:-200]
+    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
+    valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
 
 
     
@@ -225,9 +227,9 @@ def get_data_loaders(bs):
         voice_embed_data[i_d] = np.random.randn(50,512)
         face_embed_data[face_list[k]] = np.random.randn(50,512)
 
-    train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
-    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list)
-    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, valid_voice_list) # >>>>>> Roshan update voice params
+    train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list,train_spk2utt)
+    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list,valid_spk2utt)
+    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, test_voice_list) # >>>>>> Roshan update voice params
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
