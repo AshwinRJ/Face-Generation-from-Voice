@@ -170,14 +170,14 @@ assert(len(list(test_spk2utt.keys()))==118)
 def get_data_loaders(bs):
     # Load the data files
     common_meta = pd.read_csv('vox2_meta.csv')
-    #face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
+    face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
     # voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
     # List of face and voice IDs
     # Contains the class names
     dont_include = ['n003729 ' , 'n003754 ']
 
-    train_face_list, valid_face_list = [], []
+    train_face_list, valid_face_list, test_face_list = [], [], []
     train_voice_list, valid_voice_list = [], []
 
     for i in range(len(common_meta['Set '])):
@@ -189,6 +189,9 @@ def get_data_loaders(bs):
             valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
             valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
+    test_face_list = train_face_list[-200:]
+    train_face_list = train_face_list[:-200]
+    
     # Dummy voice data for now:
     ## SANITY CHECK CODE
     voice_embed_data = {}
@@ -203,7 +206,10 @@ def get_data_loaders(bs):
 
     train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list)
+    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, valid_voice_list) # >>>>>> Roshan update voice params
+    
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=4)
     return train_loader,valid_loader
 
