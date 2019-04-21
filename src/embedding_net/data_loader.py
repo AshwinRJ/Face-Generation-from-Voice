@@ -150,15 +150,32 @@ def read_vec_flt(file_or_fd):
     if fd is not file_or_fd : fd.close() # cleanup
     return ans
 
+def _read_vec_flt_binary(fd):
+    header = fd.read(3).decode()
+    if header == 'FV ' : sample_size = 4 # floats
+    elif header == 'DV ' : sample_size = 8 # doubles
+    else : raise UnknownVectorHeader("The header contained '%s'" % header)
+    assert (sample_size > 0)
+    # Dimension,
+    assert (fd.read(1).decode() == '\4'); # int-size
+    vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
+    if vec_size == 0:
+        return np.array([], dtype='float32')
+    # Read whole vector,
+    buf = fd.read(vec_size * sample_size)
+    if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
+    elif sample_size == 8 : ans = np.frombuffer(buf, dtype='float64')
+    else : raise BadSampleSize
+    return ans
+
 train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_train.ark')}
 assert(len(list(train_xvec.keys()))==1092009)
 
 trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_train','r').readlines()}
 assert(len(list(trainval_spk2utt.keys()))==5994)
 ## Split into train and dev- dev has last 200 speakers
-train_spk_list,dev_spk_list=list(trainval_spk2utt.keys())[:-200],list(trainval_spk2utt.keys())[-200:]
-train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_spk_list}
-dev_spk2utt = {spk:trainval_spk2utt[spk] for spk in dev_spk_list}
+#train_spk_list,dev_spk_list=list(trainval_spk2utt.keys())[:-200],list(trainval_spk2utt.keys())[-200:]
+
 
 ## For Test data
 test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_test.ark')}
@@ -189,8 +206,12 @@ def get_data_loaders(bs):
             valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
             valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-    test_face_list = train_face_list[-200:]
+    dev_face_list = train_face_list[-200:]
     train_face_list = train_face_list[:-200]
+    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_spk_list}
+    dev_spk2utt = {spk:trainval_spk2utt[spk] for spk in dev_spk_list}
+
+
     
     # Dummy voice data for now:
     ## SANITY CHECK CODE
