@@ -216,7 +216,7 @@ def get_data_loaders(bs):
     valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
 
 
-    
+    """
     # Dummy voice data for now:
     ## SANITY CHECK CODE
     voice_embed_data = {}
@@ -228,7 +228,7 @@ def get_data_loaders(bs):
     for k, i_d in enumerate(voice_list):
         voice_embed_data[i_d] = np.random.randn(50,512)
         face_embed_data[face_list[k]] = np.random.randn(50,512)
-
+ """
     train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list,train_spk2utt)
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list,valid_spk2utt)
     test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, test_voice_list,test_spk2utt) 
@@ -236,5 +236,5 @@ def get_data_loaders(bs):
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=4)
-    return train_loader,valid_loader
+    return train_loader,valid_loader,test_loader
 
