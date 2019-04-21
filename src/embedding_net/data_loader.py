@@ -55,7 +55,8 @@ class EmbedLoader(Dataset):
     def __getitem__(self, index):
         assert self.face_list[index] in list(self.face_data.keys())
         #print(self.face_list[index],list(self.face_data.keys()))
-        i, j = torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item(), torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item()
+        i = torch.randint(low=0, high=len(self.face_list[index])-1, size=(1, 1)).item()
+        j = torch.randint(low=0, high=len(self.voice_data[self.spk2utt[self.voice_list[index]]])-1, size=(1, 1)).item()
         face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
         voice_embed = torch.tensor(self.voice_data[self.spk2utt[self.voice_list[index]][j]])
 
