@@ -12,14 +12,14 @@ class EmbeddingNet(nn.Module):
         super(EmbeddingNet,self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512
-        self.hidden_dims = hidden_dims
+        self.hidden_dims = [1024] + hidden_dims
         self.layers=[]
         ##self.speech_projection = nn.Linear(self.speech_embed_dim,self.hidden_dims[0])
         ##self.image_projection = nn.Linear(self.face_embed_dim,self.hidden_dims[0])
         for i in range(len(self.hidden_dims)-1):
             self.layers.append(nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1]))
             self.layers.append(nn.Dropout(dropout_prob))
-        self.hiddens = nn.Sequential()
+        self.hiddens = nn.Sequential(*self.layers)
     
     def forward(self,voice,faces=None):
         speech = self.hiddens(voice)
@@ -45,6 +45,9 @@ class NPairLoss():
         self.l2_reg = l2_penalty
         self.l2_loss = torch.nn.MSELoss()
 
+    def __call__(self,voice_embeds,face_embeds):
+        return self.forward(voice_embeds,face_embeds)
+
     def forward(self, voice_embeds, face_embeds):
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
@@ -52,13 +55,13 @@ class NPairLoss():
         negative_indices = torch.from_numpy(itertools.permutations(np.arange(self.N)))
         anchors = voice_embeds    # (n, embedding_size)
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
-        negatives = [torch.cat(face_embeds[negative_indices[i]],dim=0) for i in range(N)]
-        #negatives = embeddings[n_negatives]    # (n, n-1, embedding_size)
+        negatives = torch.tensor([torch.cat(face_embeds[negative_indices[i]],dim=0) for i in range(N)]) # (n, n-1, embedding_size)
+        print('Negatives shape:',negatives.size())
 
         loss = self.n_pair_loss(anchors, positives, negatives) +self.l2_reg*self.l2_loss(anchors,positives)
         return loss
 
-    def n_pair_loss(anchors, positives, negatives):
+    def n_pair_loss(self,anchors, positives, negatives):
         """
         Calculates N-Pair loss between anchor positive and negative examples
         anchors: A torch.Tensor, (n, embedding_size)

@@ -2,52 +2,53 @@
 import os
 import torch
 import torch.nn as nn
+from data_loader import get_data_loaders
 from model import EmbeddingNet, NPairLoss
-from data_loader import train_dataset,valid_dataset
-
-
+from tensorboardX import SummaryWriter
+import time
 torch.backends.cudnn.benchmark=True
-device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#print('Device is',device)
+import sys
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 expt_prefix="v1"
 tlog, vlog = SummaryWriter("./"+expt_prefix+"logs/train_pytorch"), SummaryWriter("./"+expt_prefix+"logs/val_pytorch")
-load_path=expt_prefix+"logs/"
+load_path=expt_prefix+"logs/model9.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[2048,2048,1024,128],num_epochs=50,initial_lr=1e-3,batch_size=128,weight_decay=0,load=False):
+    def __init__(self,hiddens=[512,256,128,50],num_epochs=50,initial_lr=1e-3,batch_size=32,weight_decay=0,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
         self.net = EmbeddingNet(hiddens).to(device)
         self.embed_size = 512
-        self.train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.bs, shuffle=True, num_workers=8)
-        self.valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=self.bs, shuffle=False, num_workers=8)
-        self.train_loss = 0
-        self.valid_loss = 0
+        #self.train_loader, self.valid_loader = get_data_loaders()
+        self.train_loss = 0.0
+        self.valid_loss = 0.0
         self.patience = 5
         self.lr = initial_lr
-        self.optimizer =  torch.optim.Adam(lr=self.lr,weight_decay=weight_decay)
+        self.optimizer =  torch.optim.Adam(self.net.parameters(),lr=self.lr,weight_decay=weight_decay)
         self.init_epoch = 0
         self.net.apply(self.weights_init)
         if load:
             print('Loading model from past')
-            #self.net.load_state_dict(torch.load(load_path))
+            self.net.load_state_dict(torch.load(load_path))
             self.init_epoch=self.load(load_path)         
-        lp.write(self.net())
+        lp.write(expt_prefix+' Model with hiddens '+str(hiddens)+'\n\n')
         self.run()
   
 
-    def train_validate(self,train_loader):
+    def train_validate(self):
+        train_loader,valid_loader = get_data_loaders(self.bs)
+        sch = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,patience=self.patience,min_lr=1e-7)
         for epoch in range(self.init_epoch,self.num_epochs+self.init_epoch):
             tstart=time.time()
-            self.train_loss,train_acc=self.run_epoch(train_loader) 
             print("-------------------------------------------------------------------------------------------")
             print("Processing epoch "+str(epoch))
+            self.train_loss=self.run_epoch(train_loader) 
             tlog.add_scalar('Train Loss',self.train_loss)
             print('Training Loss is ',self.train_loss, ' Learning Rate is ',self.get_lr())
-            self.eval_loss,eval_acc=self.run_epoch(dev_loader,False)
+            self.eval_loss=self.run_epoch(valid_loader,False)
             vlog.add_scalar('Validation Loss'+epoch,self.eval_loss)
             print('Validation Loss is ',self.eval_loss)
             tend=time.time()
@@ -84,17 +85,21 @@ class TrainValidate():
 
     def run_epoch(self,loader,update=False):
         epoch_loss = 0
-        for batch_index, (embedding) in enumerate(train_loader):
-            face_embedding = embedding [:self.embed_size]
-            voice_embedding = embedding[self.embed_size:]
-            output_face_embed = self.net(face_embedding)
-            output_voice_embed = self.net(voice_embedding)
+        for batch_index, (embedding) in enumerate(loader):
+            self.optimizer.zero_grad()
+            #print('Embedding size',embedding.size())
+            face_embedding = embedding [:self.embed_size].to(device)
+            voice_embedding = embedding[self.embed_size:].to(device)
+            output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
+            print(loss)
+            sys.exit()
             epoch_loss += loss.item()
             if update:
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+        torch.cuda.empty_cache()
+        epoch_loss /= (batch_index+1)
         return epoch_loss
 
     def load(self,path):
@@ -119,11 +124,14 @@ class TrainValidate():
 
     def run(self):
         self.train_validate()
-        self.test()
+        #self.test()
 
 if __name__ == "__main__":
     import multiprocessing
+    print('Device is',device)
     TrainValidate()
+
+
     
 
 

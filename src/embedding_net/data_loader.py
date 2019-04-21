@@ -5,19 +5,19 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
-torch.backends.cudnn.bencmark = True
-
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+torch.backends.cudnn.benchmark = True
+
+
+device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 """========================================================================="""
@@ -42,56 +42,61 @@ class EmbedLoader(Dataset):
         self.elements_per_class = eclass
         self.voice_data = voice_data
         self.voice_list = voice_list
-
         self.num_class = len(voice_list)
 
     def __len__(self):
         return self.num_class
 
     def __getitem__(self, index):
-
+        assert self.face_list[index] in list(self.face_data.keys())
+        #print(self.face_list[index],list(self.face_data.keys()))
         i, j = torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item(), torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item()
         face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
         voice_embed = torch.tensor(self.voice_data[self.voice_list[index]][j])
 
-        return torch.cat((face_embed, voice_embed), dim=0)
+        return torch.cat((face_embed, voice_embed), dim=0).float()
 
 
 """========================================================================="""
 
 
-# Load the data files
-common_meta = pd.read_csv("data/vox2_meta.csv")
-#face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
-# voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
+def get_data_loaders(bs):
+    # Load the data files
+    common_meta = pd.read_csv('vox2_meta.csv')
+    #face_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
+    # voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
-# List of face and voice IDs
-# Contains the class names
-dont_include = ['n003729 ' , 'n003754 ']
+    # List of face and voice IDs
+    # Contains the class names
+    dont_include = ['n003729 ' , 'n003754 ']
 
-train_face_list, valid_face_list = [], []
-train_voice_list, valid_voice_list = [], []
+    train_face_list, valid_face_list = [], []
+    train_voice_list, valid_voice_list = [], []
 
-for i in range(len(common_meta['Set '])):
-   if common_meta['Set '].iloc[i] == "dev " and common_meta['VGGFace2 ID '].iloc[i] not in dont_include:
-       train_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1])
-       train_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1])
+    for i in range(len(common_meta['Set '])):
+        if common_meta['Set '].iloc[i] == "dev " and common_meta['VGGFace2 ID '].iloc[i] not in dont_include:
+            train_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
+            train_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-   elif common_meta['Set '].iloc[i] == "test " and common_meta['VGGFace2 ID '].iloc[i][:-1] not in dont_include:
-       valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1])
-       valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1])
+        elif common_meta['Set '].iloc[i] == "test " and common_meta['VGGFace2 ID '].iloc[i][:-1] not in dont_include:
+            valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
+            valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-# Dummy voice data for now:
-## SANITY CHECK CODE
-voice_embed_data = {}
-face_embed_data = {}
-voice_list = train_voice_list + valid_voice_list
-for k, i_d in enumerate(voice_list):
-    voice_embed_data[i_d] = np.random.randn(50,512)
-    face_embed_data[i_d] = np.random.randn(50,512)
-    #face_embed_data[face_list[k]]
+    # Dummy voice data for now:
+    ## SANITY CHECK CODE
+    voice_embed_data = {}
+    face_embed_data = {}
+    voice_list = train_voice_list + valid_voice_list
+    face_list = train_face_list + valid_face_list
+    print('The dataset has ',len(voice_list), 'elements totally')
 
-train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
-valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list)
+    for k, i_d in enumerate(voice_list):
+        voice_embed_data[i_d] = np.random.randn(50,512)
+        face_embed_data[face_list[k]] = np.random.randn(50,512)
 
+    train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list)
+    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
+    return train_loader,valid_loader
 
