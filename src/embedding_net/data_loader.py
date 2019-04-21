@@ -17,6 +17,7 @@ import struct
 import sys
 import re
 import json
+import logging
 torch.backends.cudnn.benchmark = True
 
 
@@ -39,12 +40,13 @@ def write_to_json(data, filename='data.json'):
 
 
 class EmbedLoader(Dataset):
-    def __init__(self, face_data, face_list, voice_data, voice_list,eclass=50):
+    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt,eclass=50):
         self.face_data = face_data
         self.face_list = face_list
         self.elements_per_class = eclass
         self.voice_data = voice_data
         self.voice_list = voice_list
+        self.spk2utt = spk2utt
         self.num_class = len(voice_list)
 
     def __len__(self):
@@ -55,7 +57,7 @@ class EmbedLoader(Dataset):
         #print(self.face_list[index],list(self.face_data.keys()))
         i, j = torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item(), torch.randint(low=0, high=self.elements_per_class-1, size=(1, 1)).item()
         face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
-        voice_embed = torch.tensor(self.voice_data[self.voice_list[index]][j])
+        voice_embed = torch.tensor(self.voice_data[self.spk2utt[self.voice_list[index]][j]])
 
         return torch.cat((face_embed, voice_embed), dim=0).float()
 
@@ -195,7 +197,7 @@ def get_data_loaders(bs):
     dont_include = ['n003729 ' , 'n003754 ']
 
     train_face_list, valid_face_list, test_face_list = [], [], []
-    train_voice_list, valid_voice_list = [], []
+    train_voice_list, valid_voice_list, test_voice_list = [], [], []
 
     for i in range(len(common_meta['Set '])):
         if common_meta['Set '].iloc[i] == "dev " and common_meta['VGGFace2 ID '].iloc[i] not in dont_include:
@@ -229,7 +231,7 @@ def get_data_loaders(bs):
 
     train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list,train_spk2utt)
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list,valid_spk2utt)
-    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, test_voice_list) # >>>>>> Roshan update voice params
+    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, test_voice_list,test_spk2utt) 
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
