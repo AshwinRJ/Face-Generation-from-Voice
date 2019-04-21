@@ -99,7 +99,6 @@ def open_or_fd(file, mode='rb'):
     return fd
 
 
-
 def read_key(fd):
     """ [key] = read_key(fd)
      Read the utterance-key from the opened ark/stream descriptor 'fd'.
@@ -171,21 +170,6 @@ def _read_vec_flt_binary(fd):
     else : raise BadSampleSize
     return ans
 
-train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_train.ark')}
-assert(len(list(train_xvec.keys()))==1092009)
-
-trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_train','r').readlines()}
-assert(len(list(trainval_spk2utt.keys()))==5994)
-## Split into train and dev- dev has last 200 speakers
-#train_spk_list,dev_spk_list=list(trainval_spk2utt.keys())[:-200],list(trainval_spk2utt.keys())[-200:]
-
-
-## For Test data
-test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_test.ark')}
-assert(len(list(test_xvec.keys()))==36237)
-
-test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_test','r').readlines()}
-assert(len(list(test_spk2utt.keys()))==118)
 
 def get_data_loaders(bs):
     # Load the data files
@@ -215,6 +199,16 @@ def get_data_loaders(bs):
     train_voice_list = train_voice_list[:-200]
     train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
     valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
+    train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_train.ark')}
+    assert(len(list(train_xvec.keys()))==1092009)
+
+    trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_train','r').readlines()}
+    assert(len(list(trainval_spk2utt.keys()))==5994)
+    ## For Test data
+    test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_test.ark')}
+    assert(len(list(test_xvec.keys()))==36237)
+    test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_test','r').readlines()}
+    assert(len(list(test_spk2utt.keys()))==118)
 
 
     """
