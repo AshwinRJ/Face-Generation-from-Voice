@@ -186,10 +186,10 @@ def get_data_loaders(bs):
             train_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
         elif common_meta['Set '].iloc[i] == "test " and common_meta['VGGFace2 ID '].iloc[i][:-1] not in dont_include:
-            valid_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
-            valid_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
+            test_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
+            test_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-    test_face_list = train_face_list[-200:]
+    valid_face_list = train_face_list[-200:]
     train_face_list = train_face_list[:-200]
     
     # Dummy voice data for now:
