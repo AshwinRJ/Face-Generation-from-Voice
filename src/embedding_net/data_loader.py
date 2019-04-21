@@ -13,7 +13,10 @@ from torch.autograd import Variable
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-
+import struct
+import sys
+import re
+import json
 torch.backends.cudnn.benchmark = True
 
 
@@ -59,6 +62,110 @@ class EmbedLoader(Dataset):
 
 """========================================================================="""
 
+## LOAD SPEECH KALDI ARKS- Kaldi IO
+def open_or_fd(file, mode='rb'):
+    """ fd = open_or_fd(file)
+     Open file, gzipped file, pipe, or forward the file-descriptor.
+     Eventually seeks in the 'file' argument contains ':offset' suffix.
+    """
+    offset = None
+    try:
+        # strip 'ark:' prefix from r{x,w}filename (optional),
+        if re.search('^(ark|scp)(,scp|,b|,t|,n?f|,n?p|,b?o|,n?s|,n?cs)*:', file):
+            (prefix,file) = file.split(':',1)
+        # separate offset from filename (optional),
+        if re.search(':[0-9]+$', file):
+            (file,offset) = file.rsplit(':',1)
+        # input pipe?
+        if file[-1] == '|':
+            fd = popen(file[:-1], 'rb') # custom,
+        # output pipe?
+        elif file[0] == '|':
+            fd = popen(file[1:], 'wb') # custom,
+        # is it gzipped?
+        elif file.split('.')[-1] == 'gz':
+            fd = gzip.open(file, mode)
+        # a normal file...
+        else:
+            fd = open(file, mode)
+    except TypeError:
+        # 'file' is opened file descriptor,
+        fd = file
+    # Eventually seek to offset,
+    if offset != None: fd.seek(int(offset))
+    return fd
+
+
+
+def read_key(fd):
+    """ [key] = read_key(fd)
+     Read the utterance-key from the opened ark/stream descriptor 'fd'.
+    """
+    assert('b' in fd.mode), "Error: 'fd' was opened in text mode (in python3 use sys.stdin.buffer)"
+
+    key = ''
+    while 1:
+        char = fd.read(1).decode("latin1")
+        if char == '' : break
+        if char == ' ' : break
+        key += char
+    key = key.strip()
+    if key == '': return None # end of file,
+    assert(re.match('^\S+$',key) != None) # check format (no whitespace!)
+    return key
+
+
+def read_vec_flt_ark(file_or_fd):
+    """ generator(key,vec) = read_vec_flt_ark(file_or_fd)
+     Create generator of (key,vector<float>) tuples, reading from an ark file/stream.
+     file_or_fd : ark, gzipped ark, pipe or opened file descriptor.
+     Read ark to a 'dictionary':
+     d = { u:d for u,d in kaldi_io.read_vec_flt_ark(file) }
+    """
+    fd = open_or_fd(file_or_fd)
+    try:
+        key = read_key(fd)
+        while key:
+            ali = read_vec_flt(fd)
+            yield key, ali
+            key = read_key(fd)
+    finally:
+        if fd is not file_or_fd : fd.close()
+
+def read_vec_flt(file_or_fd):
+    """ [flt-vec] = read_vec_flt(file_or_fd)
+     Read kaldi float vector, ascii or binary input,
+    """
+    fd = open_or_fd(file_or_fd)
+    binary = fd.read(2).decode()
+    if binary == '\0B': # binary flag
+        ans = _read_vec_flt_binary(fd)
+    else:    # ascii,
+        arr = (binary + fd.readline().decode()).strip().split()
+        try:
+            arr.remove('['); arr.remove(']') # optionally
+        except ValueError:
+            pass
+        ans = np.array(arr, dtype=float)
+    if fd is not file_or_fd : fd.close() # cleanup
+    return ans
+
+train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_train.ark')}
+assert(len(list(train_xvec.keys()))==1092009)
+
+trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_train','r').readlines()}
+assert(len(list(trainval_spk2utt.keys()))==5994)
+## Split into train and dev- dev has last 200 speakers
+train_spk_list,dev_spk_list=list(trainval_spk2utt.keys())[:-200],list(trainval_spk2utt.keys())[-200:]
+train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_spk_list}
+dev_spk2utt = {spk:trainval_spk2utt[spk] for spk in dev_spk_list}
+
+## For Test data
+test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('xvec_v2_test.ark')}
+assert(len(list(test_xvec.keys()))==36237)
+
+test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('spk2utt_test','r').readlines()}
+assert(len(list(test_spk2utt.keys()))==118)
 
 def get_data_loaders(bs):
     # Load the data files
