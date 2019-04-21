@@ -229,9 +229,9 @@ def get_data_loaders(bs):
         voice_embed_data[i_d] = np.random.randn(50,512)
         face_embed_data[face_list[k]] = np.random.randn(50,512)
  """
-    train_dataset = EmbedLoader(face_embed_data, train_face_list, voice_embed_data, train_voice_list,train_spk2utt)
-    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, voice_embed_data, valid_voice_list,valid_spk2utt)
-    test_dataset = EmbedLoader(face_embed_data, test_face_list, voice_embed_data, test_voice_list,test_spk2utt) 
+    train_dataset = EmbedLoader(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt)
+    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
+    test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt) 
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
