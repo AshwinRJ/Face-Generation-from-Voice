@@ -16,7 +16,7 @@ lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[512,256,128,50],num_epochs=50,initial_lr=1e-3,batch_size=32,weight_decay=0,load=False):
+    def __init__(self,hiddens=[512,256,128,50],num_epochs=50,initial_lr=1e-3,batch_size=64,weight_decay=0,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
@@ -39,6 +39,7 @@ class TrainValidate():
   
 
     def train_validate(self):
+        print('Batch size is',self.bs)
         train_loader,valid_loader, test_loader = get_data_loaders(self.bs)
         sch = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,patience=self.patience,min_lr=1e-7)
         for epoch in range(self.init_epoch,self.num_epochs+self.init_epoch):
@@ -46,6 +47,7 @@ class TrainValidate():
             print("-------------------------------------------------------------------------------------------")
             print("Processing epoch "+str(epoch))
             self.train_loss=self.run_epoch(train_loader) 
+            print('Done pass')
             tlog.add_scalar('Train Loss',self.train_loss)
             print('Training Loss is ',self.train_loss, ' Learning Rate is ',self.get_lr())
             self.eval_loss=self.run_epoch(valid_loader,False)
@@ -85,11 +87,17 @@ class TrainValidate():
 
     def run_epoch(self,loader,update=True):
         epoch_loss = 0
-        for batch_index, (embedding) in enumerate(loader):
+        for batch_index,embedding in enumerate(loader):
             self.optimizer.zero_grad()
             #print('Embedding size',embedding.size())
-            face_embedding = embedding [:self.embed_size].to(device)
-            voice_embedding = embedding[self.embed_size:].to(device)
+            try:
+                face_embedding = torch.Tensor(embedding[:self.embed_size]).to(device)
+            except:
+                print(embedding[:self.embed_size],len(embedding),len(embedding[:self.embed_size]))
+            try:
+                voice_embedding = torch.Tensor(embedding[self.embed_size:]).to(device)
+            except:
+                print(voice_embedding)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
             print(loss)

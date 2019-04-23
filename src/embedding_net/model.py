@@ -23,10 +23,12 @@ class EmbeddingNet(nn.Module):
         print("Initialized Model")
 
     def forward(self,voice,faces=None):
-        print("Started Forward")
+        print("Started Forward",voice.size())
         speech = self.hiddens(voice)
         if faces is not None:
+            print('I have faces',faces.size())
             faces = self.hiddens(faces)
+        print('Done forward',speech.size(),faces.size())
         return speech, faces
 
 

@@ -39,28 +39,43 @@ def write_to_json(data, filename='data.json'):
         json.dump(data, outfile)
 
 
-class EmbedLoader(Dataset):
-    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt,eclass=100):
+class EmbedLoader(torch.utils.data.Dataset):
+    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt):
         self.face_data = face_data
         self.face_list = face_list
-        self.elements_per_class = eclass
         self.voice_data = voice_data
         self.voice_list = voice_list
         self.spk2utt = spk2utt
         self.num_class = len(voice_list)
+        print('Number of classes is',self.num_class)
+        ## ANALYSIS OF DATASET
+#        face
 
     def __len__(self):
         return self.num_class
 
+    def collate(self,batch_data):
+        print(len(batch_data),'BATCH SHAPE')
+        lengths= [len(x) for x in batch_data]
+        print(lengths,'BATCH LENS')
+        return batch_data
+
     def __getitem__(self, index):
         assert self.face_list[index] in list(self.face_data.keys())
         #print(self.face_list[index],list(self.face_data.keys()))
-        i = torch.randint(low=0, high=len(self.face_list[index])-1, size=(1, 1)).item()
-        j = torch.randint(low=0, high=len(self.spk2utt[self.voice_list[index]])-1, size=(1, 1)).item()
-        face_embed = torch.tensor(self.face_data[self.face_list[index]][i])
-        voice_embed = torch.tensor(self.voice_data[self.spk2utt[self.voice_list[index]][j]])
-
-        return torch.cat((face_embed, voice_embed), dim=0).float()
+        i = torch.randint(low=1, high=len(self.face_list[index])-1, size=(1, 1)).item()
+        j = torch.randint(low=1, high=len(self.spk2utt[self.voice_list[index]])-1, size=(1, 1)).item()
+        face_embed = torch.Tensor(self.face_data[self.face_list[index]][i])
+        voice_embed = torch.Tensor(self.voice_data[self.spk2utt[self.voice_list[index]][j]])
+        assert(face_embed.size()[0]==512 and voice_embed.size()[0]==512)
+        concatenated_feat_vec = torch.cat((face_embed, voice_embed))
+        assert(concatenated_feat_vec.size()[0]==1024)
+        print('Index',index,' Face embedding at index',i,'has shape',face_embed.size(), 'and voice_embedding at index ',j,'has shape',voice_embed.size())
+        print('Concatenated tensor has size',concatenated_feat_vec.size())
+        #print('Data loaded with face and voice size as ',face_embed.size(),voice_embed.size())
+        assert(concatenated_feat_vec.size()[0]==1024)
+        #print(concatenated_feat_vec.size()[0],'CFeat Size')
+        return torch.Tensor(voice_embed).float()
 
 
 """========================================================================="""
@@ -175,7 +190,6 @@ def get_data_loaders(bs):
     # Load the data files
     common_meta = pd.read_csv('vox2_meta.csv')
     face_embed_data = load_json("../../../data/vggface2_voxceleb2_embeddings.json")
-    # voice_embed_data = load_json("vggface2_voxceleb2_embeddings.json")
 
     # List of face and voice IDs
     # Contains the class names
@@ -227,9 +241,9 @@ def get_data_loaders(bs):
     train_dataset = EmbedLoader(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt)
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
     test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt) 
-    
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=4)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=4)
+    print('Creating loaders with batch_size as ',bs) 
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12,pin_memory= True,collate_fn=train_dataset.collate)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True,collate_fn=valid_dataset.collate)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True,collate_fn=test_dataset.collate)
     return train_loader,valid_loader,test_loader
 
