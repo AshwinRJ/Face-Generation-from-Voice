@@ -39,7 +39,7 @@ class TrainValidate():
   
 
     def train_validate(self):
-        train_loader,valid_loader = get_data_loaders(self.bs)
+        train_loader,valid_loader, test_loader = get_data_loaders(self.bs)
         sch = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,patience=self.patience,min_lr=1e-7)
         for epoch in range(self.init_epoch,self.num_epochs+self.init_epoch):
             tstart=time.time()
@@ -83,7 +83,7 @@ class TrainValidate():
             'dev_loss':self.eval_loss},"./"+expt_prefix+"logs/model_dict"+str(epoch)+".pt")
             
 
-    def run_epoch(self,loader,update=False):
+    def run_epoch(self,loader,update=True):
         epoch_loss = 0
         for batch_index, (embedding) in enumerate(loader):
             self.optimizer.zero_grad()
@@ -93,7 +93,6 @@ class TrainValidate():
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
             print(loss)
-            sys.exit()
             epoch_loss += loss.item()
             if update:
                 loss.backward()

@@ -20,12 +20,14 @@ class EmbeddingNet(nn.Module):
             self.layers.append(nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1]))
             self.layers.append(nn.Dropout(dropout_prob))
         self.hiddens = nn.Sequential(*self.layers)
-    
+        print("Initialized Model")
+
     def forward(self,voice,faces=None):
+        print("Started Forward")
         speech = self.hiddens(voice)
         if faces is not None:
-            face = self.hiddens(face)
-        return speech,face
+            faces = self.hiddens(faces)
+        return speech, faces
 
 
 class NPairLoss():
@@ -44,11 +46,14 @@ class NPairLoss():
         super(NPairLoss, self).__init__()
         self.l2_reg = l2_penalty
         self.l2_loss = torch.nn.MSELoss()
+        print("Initilized Loss")
 
     def __call__(self,voice_embeds,face_embeds):
+        print("Called Loss")
         return self.forward(voice_embeds,face_embeds)
 
     def forward(self, voice_embeds, face_embeds):
+        print("Loss Forward activated")
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
         #positive_indices = torch.arange(len(face_embeds))
@@ -70,7 +75,9 @@ class NPairLoss():
         Loss: A scalar
         """
         anchors = torch.unsqueeze(anchors, dim=1)  # (n, 1, embedding_size)
+        assert(anchors.size() == (self.N, 1, 512))
         positives = torch.unsqueeze(positives, dim=1)  # (n, 1, embedding_size)
+        assert(positives.size() == (self.N, 1, 512))
         x = torch.matmul(anchors, (negatives - positives).transpose(1, 2))  # (n, 1, n-1)
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
         loss = torch.mean(torch.log(1+x))
