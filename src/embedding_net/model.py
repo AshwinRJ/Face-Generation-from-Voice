@@ -1,5 +1,5 @@
 #! /bin/python
-
+import numpy as np
 import torch
 import torch.nn as nn
 import os
@@ -8,11 +8,11 @@ import itertools
 
 
 class EmbeddingNet(nn.Module):
-    def __init__(self,hidden_dims=[2048,2048,1024,128],dropout_prob=0.4):
+    def __init__(self,hidden_dims=[512,512,256,128,50],dropout_prob=0.4):
         super(EmbeddingNet,self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512
-        self.hidden_dims = [1024] + hidden_dims
+        self.hidden_dims = [512] + hidden_dims
         self.layers=[]
         ##self.speech_projection = nn.Linear(self.speech_embed_dim,self.hidden_dims[0])
         ##self.image_projection = nn.Linear(self.face_embed_dim,self.hidden_dims[0])
@@ -23,12 +23,12 @@ class EmbeddingNet(nn.Module):
         print("Initialized Model")
 
     def forward(self,voice,faces=None):
-        print("Started Forward",voice.size())
+        #print("Started Forward",voice.size())
         speech = self.hiddens(voice)
         if faces is not None:
             print('I have faces',faces.size())
             faces = self.hiddens(faces)
-        print('Done forward',speech.size(),faces.size())
+        #print('Done forward',speech.size(),faces.size())
         return speech, faces
 
 

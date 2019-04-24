@@ -89,13 +89,13 @@ class TrainValidate():
         epoch_loss = 0
         for batch_index,embedding in enumerate(loader):
             self.optimizer.zero_grad()
-            #print('Embedding size',embedding.size())
+           # print('Embedding size',embedding.size())
             try:
-                face_embedding = torch.Tensor(embedding[:self.embed_size]).to(device)
+                face_embedding = torch.Tensor(embedding[:,:self.embed_size]).to(device)
             except:
-                print(embedding[:self.embed_size],len(embedding),len(embedding[:self.embed_size]))
+                print(embedding[:,:self.embed_size],len(embedding),len(embedding[:,:self.embed_size]))
             try:
-                voice_embedding = torch.Tensor(embedding[self.embed_size:]).to(device)
+                voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
             except:
                 print(voice_embedding)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces

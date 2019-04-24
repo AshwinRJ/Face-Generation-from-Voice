@@ -38,48 +38,6 @@ def write_to_json(data, filename='data.json'):
     with open(filename, 'w') as outfile:
         json.dump(data, outfile)
 
-
-class EmbedLoader(torch.utils.data.Dataset):
-    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt):
-        self.face_data = face_data
-        self.face_list = face_list
-        self.voice_data = voice_data
-        self.voice_list = voice_list
-        self.spk2utt = spk2utt
-        self.num_class = len(voice_list)
-        print('Number of classes is',self.num_class)
-        ## ANALYSIS OF DATASET
-#        face
-
-    def __len__(self):
-        return self.num_class
-
-    def collate(self,batch_data):
-        print(len(batch_data),'BATCH SHAPE')
-        lengths= [len(x) for x in batch_data]
-        print(lengths,'BATCH LENS')
-        return batch_data
-
-    def __getitem__(self, index):
-        assert self.face_list[index] in list(self.face_data.keys())
-        #print(self.face_list[index],list(self.face_data.keys()))
-        i = torch.randint(low=1, high=len(self.face_list[index])-1, size=(1, 1)).item()
-        j = torch.randint(low=1, high=len(self.spk2utt[self.voice_list[index]])-1, size=(1, 1)).item()
-        face_embed = torch.Tensor(self.face_data[self.face_list[index]][i])
-        voice_embed = torch.Tensor(self.voice_data[self.spk2utt[self.voice_list[index]][j]])
-        assert(face_embed.size()[0]==512 and voice_embed.size()[0]==512)
-        concatenated_feat_vec = torch.cat((face_embed, voice_embed))
-        assert(concatenated_feat_vec.size()[0]==1024)
-        print('Index',index,' Face embedding at index',i,'has shape',face_embed.size(), 'and voice_embedding at index ',j,'has shape',voice_embed.size())
-        print('Concatenated tensor has size',concatenated_feat_vec.size())
-        #print('Data loaded with face and voice size as ',face_embed.size(),voice_embed.size())
-        assert(concatenated_feat_vec.size()[0]==1024)
-        #print(concatenated_feat_vec.size()[0],'CFeat Size')
-        return torch.Tensor(voice_embed).float()
-
-
-"""========================================================================="""
-
 ## LOAD SPEECH KALDI ARKS- Kaldi IO
 def open_or_fd(file, mode='rb'):
     """ fd = open_or_fd(file)
@@ -185,6 +143,49 @@ def _read_vec_flt_binary(fd):
     else : raise BadSampleSize
     return ans
 
+""""
+END OF UTILS FUNCTIONS
+"""""
+class EmbedLoader(torch.utils.data.Dataset):
+    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt):
+        self.face_data = face_data
+        self.face_list = face_list
+        self.voice_data = voice_data
+        self.voice_list = voice_list
+        self.spk2utt = spk2utt
+        self.num_class = len(voice_list)
+        #print('Number of classes is',self.num_class)
+
+    def __len__(self):
+        return self.num_class
+
+    #def collate(self,batch_data):
+        #print(len(batch_data),'BATCH SHAPE')
+        #lengths= [len(x) for x in batch_data]
+        #print(lengths,'BATCH LENS')
+    #    return batch_data
+
+    def __getitem__(self, index):
+        assert self.face_list[index] in list(self.face_data.keys())
+        #print(self.face_list[index],list(self.face_data.keys()))
+        face_id = self.face_list[index]
+        voice_id = self.voice_list[index]
+        i = np.random.randint(low=0, high=len(self.face_data[face_id])-1)
+        j = np.random.randint(low=0, high=len(self.spk2utt[voice_id])-1)
+        face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
+        voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
+        #print(np.array(self.face_data[face_id][i]).shape,np.array(self.voice_data[self.spk2utt[voice_id][j]]).shape)
+        assert(face_embed.size()[0]==512 and voice_embed.size()[0]==512)
+        concatenated_feat_vec = torch.cat((face_embed, voice_embed),0)
+        assert(concatenated_feat_vec.size()[0]==1024)
+        #print('Index',index,' Face embedding at index',i,'has shape',face_embed.size(), 'and voice_embedding at index ',j,'has shape',voice_embed.size())
+        #print('Concatenated tensor has size',concatenated_feat_vec.size())
+        #print('Data loaded with face and voice size as ',face_embed.size(),voice_embed.size())
+        assert(concatenated_feat_vec.size()[0]==1024)
+        #print(concatenated_feat_vec.size()[0],'CFeat Size')
+        return concatenated_feat_vec
+
+
 
 def get_data_loaders(bs):
     # Load the data files
@@ -242,8 +243,8 @@ def get_data_loaders(bs):
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
     test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt) 
     print('Creating loaders with batch_size as ',bs) 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12,pin_memory= True,collate_fn=train_dataset.collate)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True,collate_fn=valid_dataset.collate)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True,collate_fn=test_dataset.collate)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12,pin_memory= True)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True)
     return train_loader,valid_loader,test_loader
 
