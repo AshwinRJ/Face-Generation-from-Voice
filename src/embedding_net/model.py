@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
+import time
 import itertools
 ## MODEL ARCHITECTURE- MLP with N-Pair Loss
 
@@ -26,7 +27,7 @@ class EmbeddingNet(nn.Module):
         #print("Started Forward",voice.size())
         speech = self.hiddens(voice)
         if faces is not None:
-            print('I have faces',faces.size())
+            # print('I have faces',faces.size())
             faces = self.hiddens(faces)
         #print('Done forward',speech.size(),faces.size())
         return speech, faces
@@ -48,27 +49,27 @@ class NPairLoss():
         super(NPairLoss, self).__init__()
         self.l2_reg = l2_penalty
         self.l2_loss = torch.nn.MSELoss()
-        print("Initilized Loss")
+        # print("Initilized Loss")
 
     def __call__(self,voice_embeds,face_embeds):
-        print("Called Loss")
+        # print("Called Loss")
         return self.forward(voice_embeds,face_embeds)
 
     def forward(self, voice_embeds, face_embeds):
-        print("Loss Forward activated")
+        # print("Loss Forward activated")
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
         #positive_indices = torch.arange(len(face_embeds))
         array= np.arange(self.N)
-        print('Starting listcomp')
+        # print('Starting listcomp')
         st=time.time()
-        negative_indices = np.array([array.remove(i) for i in range(len(array))])       
-        print('Done listcomp in time',time.time()-st, 'NI shape', negative_indices.shape)  
+        negative_indices = np.array([np.delete(array, i) for i in range(len(array))])       
+        # print('Done listcomp in time',time.time()-st, 'NI shape', negative_indices.shape)  
         anchors = voice_embeds    # (n, embedding_size)
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
-        negatives = torch.tensor([torch.cat(face_embeds[negative_indices[i]],dim=0) for i in range(N)]) # (n, n-1, embedding_size)
-        print('Negatives shape:',negatives.size())
-        loss = self.n_pair_loss(anchors, positives, negatives) +self.l2_reg*self.l2_loss(anchors,positives)
+        negatives = torch.stack(([face_embeds[negative_indices[i]] for i in range(self.N)]), dim=0) # (n, n-1, embedding_size)
+        # print('Negatives shape:',negatives.size())
+        loss = self.n_pair_loss(anchors, positives, negatives) + self.l2_reg*self.l2_loss(anchors,positives)
         return loss
 
     def n_pair_loss(self,anchors, positives, negatives):
@@ -80,9 +81,11 @@ class NPairLoss():
         Loss: A scalar
         """
         anchors = torch.unsqueeze(anchors, dim=1)  # (n, 1, embedding_size)
-        assert(anchors.size() == (self.N, 1, 512))
+        # print(anchors.size())
+        #assert(anchors.size() == (self.N, 1, 512))
         positives = torch.unsqueeze(positives, dim=1)  # (n, 1, embedding_size)
-        assert(positives.size() == (self.N, 1, 512))
+        # print(positives.size())
+        #assert(positives.size() == (self.N, 1, 512))
         x = torch.matmul(anchors, (negatives - positives).transpose(1, 2))  # (n, 1, n-1)
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
         loss = torch.mean(torch.log(1+x))
