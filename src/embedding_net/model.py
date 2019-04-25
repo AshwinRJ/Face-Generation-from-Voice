@@ -59,12 +59,15 @@ class NPairLoss():
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
         #positive_indices = torch.arange(len(face_embeds))
-        negative_indices = torch.from_numpy(np.array(list(itertools.permutations(np.arange(self.N)))))
+        array= np.arange(self.N)
+        print('Starting listcomp')
+        st=time.time()
+        negative_indices = np.array([array.remove(i) for i in range(len(array))])       
+        print('Done listcomp in time',time.time()-st, 'NI shape', negative_indices.shape)  
         anchors = voice_embeds    # (n, embedding_size)
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
         negatives = torch.tensor([torch.cat(face_embeds[negative_indices[i]],dim=0) for i in range(N)]) # (n, n-1, embedding_size)
         print('Negatives shape:',negatives.size())
-
         loss = self.n_pair_loss(anchors, positives, negatives) +self.l2_reg*self.l2_loss(anchors,positives)
         return loss
 
