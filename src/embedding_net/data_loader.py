@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from collections import defaultdict
 import numpy as np
 import pandas as pd
@@ -188,6 +189,7 @@ class EmbedLoader(torch.utils.data.Dataset):
 
 
 def get_data_loaders(bs):
+    start = time.time()
     # Load the data files
     common_meta = pd.read_csv('vox2_meta.csv')
     face_embed_data = load_json("../../../data/vggface2_voxceleb2_embeddings.json")
@@ -241,10 +243,12 @@ def get_data_loaders(bs):
  """
     train_dataset = EmbedLoader(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt)
     valid_dataset = EmbedLoader(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
-    test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt) 
-    print('Creating loaders with batch_size as ',bs) 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12,pin_memory= True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12,pin_memory = True)
+    test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt)
+    print('Creating loaders with batch_size as ', bs)
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12, pin_memory= True)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12, pin_memory = True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12, pin_memory = True)
+    print("Time taken for data loading: ", time.time()-start)
     return train_loader,valid_loader,test_loader
 
