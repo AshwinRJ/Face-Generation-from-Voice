@@ -6,17 +6,18 @@ from data_loader import get_data_loaders
 from model import EmbeddingNet, NPairLoss
 from tensorboardX import SummaryWriter
 import time
+import numpy as np 
 torch.backends.cudnn.benchmark=True
 import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-expt_prefix="v1"
+expt_prefix="v3"
 tlog, vlog = SummaryWriter("./"+expt_prefix+"logs/train_pytorch"), SummaryWriter("./"+expt_prefix+"logs/val_pytorch")
 load_path=expt_prefix+"logs/model9.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[512,256,128,50],num_epochs=50,initial_lr=1e-3,batch_size=64,weight_decay=0,load=False):
+    def __init__(self,hiddens=[512,256,50],num_epochs=50,initial_lr=1e-3,batch_size=128,weight_decay=0,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
@@ -25,7 +26,7 @@ class TrainValidate():
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
         self.valid_loss = 0.0
-        self.patience = 5
+        self.patience = 10
         self.lr = initial_lr
         self.optimizer =  torch.optim.Adam(self.net.parameters(),lr=self.lr,weight_decay=weight_decay)
         self.init_epoch = 0
@@ -42,6 +43,7 @@ class TrainValidate():
         print('Batch size is',self.bs)
         train_loader,valid_loader, test_loader = get_data_loaders(self.bs)
         sch = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,patience=self.patience,min_lr=1e-7)
+        best_loss= np.inf
         for epoch in range(self.init_epoch,self.num_epochs+self.init_epoch):
             tstart=time.time()
             print("-------------------------------------------------------------------------------------------")
@@ -58,8 +60,8 @@ class TrainValidate():
             print("-------------------------------------------------------------------------------------------")
             for tag, value in self.net.named_parameters():
                 tag = tag.replace('.', '/')
-                tlog.add_histogram(tag, value.data,epoch)
-                tlog.add_histogram(tag+'/grad', value.data,epoch)
+                tlog.add_histogram(tag,value.data,global_step=epoch)
+                tlog.add_histogram(tag+'/grad',value.data,global_step=epoch)
             if self.eval_loss < best_loss:
                 best_loss = self.eval_loss
                 pat = 0
@@ -100,7 +102,7 @@ class TrainValidate():
                 print(voice_embedding)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
-            print(loss)
+            # print(loss)
             epoch_loss += loss.item()
             if update:
                 loss.backward()
