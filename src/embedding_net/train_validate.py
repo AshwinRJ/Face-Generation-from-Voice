@@ -17,7 +17,7 @@ lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[512,256,50],num_epochs=50,initial_lr=1e-3,batch_size=128,weight_decay=0,load=False):
+    def __init__(self,hiddens=[512,256,50],num_epochs=1000,initial_lr=1e-3,batch_size=128,weight_decay=0,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
@@ -26,7 +26,7 @@ class TrainValidate():
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
         self.valid_loss = 0.0
-        self.patience = 10
+        self.patience = 1000
         self.lr = initial_lr
         self.optimizer =  torch.optim.Adam(self.net.parameters(),lr=self.lr,weight_decay=weight_decay)
         self.init_epoch = 0
