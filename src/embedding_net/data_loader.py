@@ -157,7 +157,7 @@ class EmbedDataset(torch.utils.data.Dataset):
         self.spk2utt = spk2utt
         self.num_class = len(voice_list)
         self.num_face_repeats = 50 ##Number of times I go through examples 
-        self.num_voice_repeats = 22
+        self.num_voice_repeats = 50
         self.face_range = np.arange(self.num_face_repeats)
         self.voice_range = np.arange(self.num_voice_repeats)
         self.combo_list = list(itertools.product(self.face_range,self.voice_range))
@@ -175,6 +175,10 @@ class EmbedDataset(torch.utils.data.Dataset):
         voice_id = self.voice_list[index]
         repeat_index = self.class_repeat_num[index % self.num_class]
         i,j = self.combo_list[repeat_index][0],self.combo_list[repeat_index][1]
+        if j > len(self.spk2utt[index]):
+            j = j % len(self.spk2utt[index])
+        if i > len(self.face_data[face_id]):
+            i = i % len(self.face_data[face_id])
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
         self.class_repeat_num[index % self.num_class] +=1
@@ -186,7 +190,7 @@ class EmbedDataset(torch.utils.data.Dataset):
         #if concatenated_feat_vec==torch.zeros((1024)):
         #    print('Sending 0 input')
         return concatenated_feat_vec
-
+"""
 class EmbedLoader(torch.utils.data.DataLoader):
     def __init__(self,Dataset,batch_size,shuffle=True):
         super(EmbedLoader).__init__()
@@ -200,7 +204,10 @@ class EmbedLoader(torch.utils.data.DataLoader):
 
     def __iter__(self):
         for i in range()
-        selected_indices = np.random.choice(face_array[i],50)
+            selected_face_indices = np.random.choice(face_array[i],50)
+            selected_voice_indices = np.random.choice(face_array[i],50)
+
+"""
 
 
 
