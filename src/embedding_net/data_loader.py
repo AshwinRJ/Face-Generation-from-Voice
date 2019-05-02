@@ -182,11 +182,9 @@ class EmbedDataset(torch.utils.data.Dataset):
         assert(face_embed.size()[0]==512 and voice_embed.size()[0]==512)
         concatenated_feat_vec = torch.cat((face_embed, voice_embed),0)
         assert(concatenated_feat_vec.size()[0]==1024)
-        #print('Index',index,' Face embedding at index',i,'has shape',face_embed.size(), 'and voice_embedding at index ',j,'has shape',voice_embed.size())
-        #print('Concatenated tensor has size',concatenated_feat_vec.size())
-        #print('Data loaded with face and voice size as ',face_embed.size(),voice_embed.size())
-        assert(concatenated_feat_vec.size()[0]==1024)
         #print(concatenated_feat_vec.size()[0],'CFeat Size')
+        #if concatenated_feat_vec==torch.zeros((1024)):
+        #    print('Sending 0 input')
         return concatenated_feat_vec
 
 class EmbedLoader(torch.utils.data.DataLoader):

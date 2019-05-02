@@ -19,7 +19,7 @@ class EmbeddingNet(nn.Module):
         ##self.image_projection = nn.Linear(self.face_embed_dim,self.hidden_dims[0])
         for i in range(len(self.hidden_dims)-1):
             self.layers.append(nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1]))
-            self.layers.append(nn.Dropout(dropout_prob))
+            #self.layers.append(nn.Dropout(dropout_prob))
         self.hiddens = nn.Sequential(*self.layers)
         print("Initialized Model")
 
@@ -69,6 +69,8 @@ class NPairLoss():
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
         negatives = torch.stack(([face_embeds[negative_indices[i]] for i in range(self.N)]), dim=0) # (n, n-1, embedding_size)
         # print('Negatives shape:',negatives.size())
+        #print(self.n_pair_loss(anchors,positives,negatives),anchors,negatives,positives)
+        #sys.exit(0)
         loss = self.n_pair_loss(anchors, positives, negatives) + self.l2_reg*self.l2_loss(anchors,positives)
         return loss
 
@@ -80,6 +82,7 @@ class NPairLoss():
         negatives: A torch.Tensor, (n, n-1, embedding_size)
         Loss: A scalar
         """
+        eps= 1e-10
         anchors = torch.unsqueeze(anchors, dim=1)  # (n, 1, embedding_size)
         # print(anchors.size())
         #assert(anchors.size() == (self.N, 1, 512))
@@ -88,5 +91,5 @@ class NPairLoss():
         #assert(positives.size() == (self.N, 1, 512))
         x = torch.matmul(anchors, (negatives - positives).transpose(1, 2))  # (n, 1, n-1)
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
-        loss = torch.mean(torch.log(1+x))
+        loss = torch.mean(torch.log(eps+1+x))
         return loss
