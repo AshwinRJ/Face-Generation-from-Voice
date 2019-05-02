@@ -49,6 +49,7 @@ torch.manual_seed(opt.manualSeed)
 
 cudnn.benchmark = True
 
+
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
@@ -103,6 +104,10 @@ ngpu = int(opt.ngpu)
 nz = int(opt.nz)
 ngf = int(opt.ngf)
 ndf = int(opt.ndf)
+scale_layer = nn.Conv2d(in_channels=3,out_channels=3,kernel_size=3,stride=2)
+
+def scale_loss(image_tgt,image_pred,scales):
+    nn.MSELoss(scale_layer(image_tgt),scale_layer(image_pred))
 
 
 # custom weights initialization called on netG and netD

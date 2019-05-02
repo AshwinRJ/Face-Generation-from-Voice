@@ -19,6 +19,7 @@ import sys
 import re
 import json
 import logging
+import itertools
 torch.backends.cudnn.benchmark = True
 
 
@@ -147,7 +148,7 @@ def _read_vec_flt_binary(fd):
 """"
 END OF UTILS FUNCTIONS
 """""
-class EmbedLoader(torch.utils.data.Dataset):
+class EmbedDataset(torch.utils.data.Dataset):
     def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt):
         self.face_data = face_data
         self.face_list = face_list
@@ -155,26 +156,28 @@ class EmbedLoader(torch.utils.data.Dataset):
         self.voice_list = voice_list
         self.spk2utt = spk2utt
         self.num_class = len(voice_list)
+        self.num_face_repeats = 50 ##Number of times I go through examples 
+        self.num_voice_repeats = 22
+        self.face_range = np.arange(self.num_face_repeats)
+        self.voice_range = np.arange(self.num_voice_repeats)
+        self.combo_list = list(itertools.product(self.face_range,self.voice_range))
+        self.class_repeat_num = np.zeros((self.num_class))
         #print('Number of classes is',self.num_class)
 
     def __len__(self):
-        return self.num_class
+        return self.num_class * (self.num_face_repeats * self.num_voice_repeats)
 
-    #def collate(self,batch_data):
-        #print(len(batch_data),'BATCH SHAPE')
-        #lengths= [len(x) for x in batch_data]
-        #print(lengths,'BATCH LENS')
-    #    return batch_data
 
     def __getitem__(self, index):
         assert self.face_list[index] in list(self.face_data.keys())
         #print(self.face_list[index],list(self.face_data.keys()))
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
-        i = np.random.randint(low=0, high=len(self.face_data[face_id])-1)
-        j = np.random.randint(low=0, high=len(self.spk2utt[voice_id])-1)
+        repeat_index = self.class_repeat_num[index % self.num_class]
+        i,j = self.combo_list[repeat_index][0],self.combo_list[repeat_index][1]
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
+        self.class_repeat_num[index % self.num_class] +=1
         #print(np.array(self.face_data[face_id][i]).shape,np.array(self.voice_data[self.spk2utt[voice_id][j]]).shape)
         assert(face_embed.size()[0]==512 and voice_embed.size()[0]==512)
         concatenated_feat_vec = torch.cat((face_embed, voice_embed),0)
@@ -186,7 +189,25 @@ class EmbedLoader(torch.utils.data.Dataset):
         #print(concatenated_feat_vec.size()[0],'CFeat Size')
         return concatenated_feat_vec
 
+class EmbedLoader(torch.utils.data.DataLoader):
+    def __init__(self,Dataset,batch_size,shuffle=True):
+        super(EmbedLoader).__init__()
+        self.batch_size=batch_size
+        self.shuffle=shuffle
+        self.dataset=dataset
+        self.num_face_repeats = 50 ##Number of times I go through examples 
+        self.num_voice_repeats = 22
+        self.face_range = np.arange(self.num_face_repeats)
+        self.voice_range = np.arange(self.num_voice_repeats)
 
+    def __iter__(self):
+        for i in range()
+        selected_indices = np.random.choice(face_array[i],50)
+
+
+
+## Index- pair (f,c)
+#Create list that maps face_vec_id,voice_vec_id, 
 
 def get_data_loaders(bs):
     start = time.time()
@@ -241,9 +262,9 @@ def get_data_loaders(bs):
         voice_embed_data[i_d] = np.random.randn(50,512)
         face_embed_data[face_list[k]] = np.random.randn(50,512)
  """
-    train_dataset = EmbedLoader(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt)
-    valid_dataset = EmbedLoader(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
-    test_dataset = EmbedLoader(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt)
+    train_dataset = EmbedDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt)
+    valid_dataset = EmbedDataset(face_embed_data, valid_face_list, train_xvec, valid_voice_list,valid_spk2utt)
+    test_dataset = EmbedDataset(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt)
     print('Creating loaders with batch_size as ', bs)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12, pin_memory= True)
