@@ -19,6 +19,7 @@ class EmbeddingNet(nn.Module):
         ##self.image_projection = nn.Linear(self.face_embed_dim,self.hidden_dims[0])
         for i in range(len(self.hidden_dims)-1):
             self.layers.append(nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1]))
+            self.layers.append(nn.ReLU())
             #self.layers.append(nn.Dropout(dropout_prob))
         self.hiddens = nn.Sequential(*self.layers)
         print("Initialized Model")

@@ -11,17 +11,18 @@ torch.backends.cudnn.benchmark=True
 import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 expt_prefix="v3"
-tlog, vlog = SummaryWriter("./"+expt_prefix+"logs/train_pytorch"), SummaryWriter("./"+expt_prefix+"logs/val_pytorch")
+tlog, vlog = SummaryWriter("../../"+expt_prefix+"logs/train_pytorch"), SummaryWriter("../../"+expt_prefix+"logs/val_pytorch")
 load_path=expt_prefix+"logs/model9.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[512,256,50],num_epochs=1000,initial_lr=1e-3,batch_size=128,weight_decay=0,load=False):
+    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=1024,weight_decay=1e-4,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
         self.net = EmbeddingNet(hiddens).to(device)
+        self.net = torch.nn.DataParallel(self.net,device_ids=[0,1,2,3])
         self.embed_size = 512
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
@@ -89,20 +90,16 @@ class TrainValidate():
 
     def run_epoch(self,loader,update=True):
         epoch_loss = 0
+        start_time = time.time()
         for batch_index,embedding in enumerate(loader):
             self.optimizer.zero_grad()
            # print('Embedding size',embedding.size())
-            try:
-                face_embedding = torch.Tensor(embedding[:,:self.embed_size]).to(device)
-            except:
-                print(embedding[:,:self.embed_size],len(embedding),len(embedding[:,:self.embed_size]))
-            try:
-                voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
-            except:
-                print(voice_embedding)
+            face_embedding = torch.Tensor(embedding[:,:self.embed_size]).to(device)
+            voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
-            # print(loss)
+            if batch_index % 1000 == 0:
+                print("Batch index {} has seen loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
             epoch_loss += loss.item()
             if update:
                 loss.backward()

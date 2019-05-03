@@ -156,9 +156,9 @@ class EmbedDataset(torch.utils.data.Dataset):
         self.voice_list = voice_list
         self.spk2utt = spk2utt
         self.num_class = len(voice_list)
-        self.num_face_repeats = 50 ##Number of times I go through examples 
-        self.num_voice_repeats = 50
-        print(list(self.spk2utt.keys()))
+        self.num_face_repeats = 30 ##Number of times I go through examples 
+        self.num_voice_repeats = 30
+        #print(list(self.spk2utt.keys()))
         #self.face_range = np.arange(self.num_face_repeats)
         #self.voice_range = np.arange(self.num_voice_repeats)
         #self.combo_list = list(itertools.product(self.face_range,self.voice_range))
@@ -175,17 +175,15 @@ class EmbedDataset(torch.utils.data.Dataset):
         index = int(index % self.num_class)
         #print("TWO",index)
         assert self.face_list[index] in list(self.face_data.keys())
-        try:
-            assert(index in list(self.spk2utt.keys()))
-        except:
-            print(index,list(self.spk2utt.keys()))
+        assert self.voice_list[index] in list(self.spk2utt.keys())
         #print(self.face_list[index],list(self.face_data.keys()))
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
+        #print("VOICE ID  and LEN SPK2UTT:",voice_id,len(self.spk2utt[voice_id]))
         #repeat_index = self.class_repeat_num[index]
         #print(self.combo_list[new_index % self.num_class])
-        i = np.random.randint(low=0,high=len(self.face_data[face_id]))
-        j = np.random.randint(low=0,high=len(self.spk2utt[voice_id]))
+        i = np.random.randint(low=0,high=min(self.num_face_repeats,len(self.face_data[face_id])))
+        j = np.random.randint(low=0,high=min(self.num_voice_repeats,len(self.spk2utt[voice_id])))
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
         #print(np.array(self.face_data[face_id][i]).shape,np.array(self.voice_data[self.spk2utt[voice_id][j]]).shape)
@@ -246,17 +244,17 @@ def get_data_loaders(bs):
     train_face_list = train_face_list[:-200]
     valid_voice_list = train_voice_list[-200:]
     train_voice_list = train_voice_list[:-200]
-    train_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
+    train_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
     assert(len(list(train_xvec.keys()))==1092009)
 
-    trainval_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
+    trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
     train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
     valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
     ## For Test data
-    test_xvec = { key:vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
+    test_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
     assert(len(list(test_xvec.keys()))==36237)
-    test_spk2utt = {line.split(' ')[0]:line.split(' ')[1:] for line in open('../../../data/spk2utt_test','r').readlines()}
+    test_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_test','r').readlines()}
     assert(len(list(test_spk2utt.keys()))==118)
 
 
