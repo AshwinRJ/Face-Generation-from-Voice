@@ -12,17 +12,18 @@ import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 expt_prefix="v3"
 tlog, vlog = SummaryWriter("../../"+expt_prefix+"logs/train_pytorch"), SummaryWriter("../../"+expt_prefix+"logs/val_pytorch")
-load_path=expt_prefix+"logs/model9.pt"
+load_path=expt_prefix+"logs/model_dict0.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
-    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=1024,weight_decay=1e-4,load=False):
+
+    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=True):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
         self.net = EmbeddingNet(hiddens).to(device)
-        self.net = torch.nn.DataParallel(self.net,device_ids=[0,1,2,3])
+        #self.net = torch.nn.DataParallel(self.net,device_ids=[0,1,2,3])
         self.embed_size = 512
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
@@ -34,7 +35,6 @@ class TrainValidate():
         self.net.apply(self.weights_init)
         if load:
             print('Loading model from past')
-            self.net.load_state_dict(torch.load(load_path))
             self.init_epoch=self.load(load_path)         
         lp.write(expt_prefix+' Model with hiddens '+str(hiddens)+'\n\n')
         self.run()
@@ -98,8 +98,8 @@ class TrainValidate():
             voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
             loss = self.criterion(output_face_embed,output_voice_embed)
-            if batch_index % 1000 == 0:
-                print("Batch index {} has seen loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
+            if batch_index % 3000 == 0:
+                print("Batch index {} has loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
             epoch_loss += loss.item()
             if update:
                 loss.backward()

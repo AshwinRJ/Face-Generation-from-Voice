@@ -276,9 +276,9 @@ def get_data_loaders(bs):
     test_dataset = EmbedDataset(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt)
     print('Creating loaders with batch_size as ', bs)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=12, pin_memory= True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=bs, shuffle=False, num_workers=12, pin_memory = True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=bs, shuffle=False, num_workers=12, pin_memory = True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4, pin_memory= True)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=4, pin_memory = True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=3, pin_memory = True)
     print("Time taken for data loading: ", time.time()-start)
     return train_loader,valid_loader,test_loader
 
