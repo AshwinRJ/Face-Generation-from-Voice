@@ -249,8 +249,8 @@ def get_data_loaders(bs):
 
     trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
-    train_spk2utt = {spk:trainval_spk2utt[spk] for spk in train_voice_list}
-    valid_spk2utt = {spk:trainval_spk2utt[spk] for spk in valid_voice_list}
+    train_spk2utt = {spk:trainval_spk2utt[spk][:-20] for spk in train_voice_list}
+    valid_spk2utt = {spk:trainval_spk2utt[spk][-20:] for spk in valid_voice_list}
     ## For Test data
     test_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
     assert(len(list(test_xvec.keys()))==36237)
