@@ -2,7 +2,7 @@
 import os
 import torch
 import torch.nn as nn
-from classifier_data_loader import get_data_loaders
+from classifer_data_loader import get_data_loaders
 from classifier import Classifier
 from tensorboardX import SummaryWriter
 import time
@@ -10,7 +10,7 @@ import numpy as np
 torch.backends.cudnn.benchmark=True
 import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-expt_prefix="v3"
+expt_prefix="v4"
 tlog, vlog = SummaryWriter("../../"+expt_prefix+"logs/train_pytorch"), SummaryWriter("../../"+expt_prefix+"logs/val_pytorch")
 load_path=expt_prefix+"logs/model_dict0.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file

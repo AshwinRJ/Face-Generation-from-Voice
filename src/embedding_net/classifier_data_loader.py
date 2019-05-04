@@ -168,7 +168,7 @@ class EmbedDataset(torch.utils.data.Dataset):
         index = int(index % self.num_class)
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
-        if self.mode == "t"
+        if self.mode == "t":
             i = np.random.randint(low=0,high=min(self.num_face_repeats,len(self.face_data[face_id][:20])))
         else:
             i = np.random.randint(low=0,high=min(self.num_face_repeats,len(self.face_data[face_id][20:])))
