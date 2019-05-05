@@ -51,10 +51,20 @@ class ClassifyDataset(torch.utils.data.Dataset):
         self.voice_data = voice_data
         self.voice_list = voice_list
         self.spk2utt = spk2utt
-        self.num_class = len(voice_list)
-        self.num_face_repeats = 20 ## Number of times I go through examples 
-        self.num_voice_repeats = 20
+        self.num_class = 5994
         self.mode = mode
+        self.face_counts = np.zeros((self.num_class))
+        self.voice_counts = np.zeros((self.num_class))
+        if mode == 't':
+            self.face_index_list = np.arange(30)
+            self.voice_index_list = np.arange(20)
+            self.num_face_repeats = 30 
+            self.num_voice_repeats = 20
+        else:
+            self.face_counts = 30 * np.ones((self.num_class))
+            self.num_face_repeats = 10
+            self.num_voice_repeats = 10
+        
 
     def __len__(self):
         return self.num_class * (self.num_face_repeats * self.num_voice_repeats)
@@ -64,11 +74,18 @@ class ClassifyDataset(torch.utils.data.Dataset):
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
         if self.mode == "t":
-            i = np.random.randint(low=0,high=30)
+            i = self.face_counts[index]
+            self.face_counts+=1
+            self.voice_counts+=1
         else:
-            i = np.random.randint(low=31,high=len(self.face_data[face_id]))
-
-        j = np.random.randint(low=0,high=len(self.spk2utt[voice_id]))
+            i = self.face_counts[index]
+            j = self.voice_counts[index]
+            if i > len(self.face_list[index]-31):
+                i = np.random.randint(low=31,high=len(self.face_data[face_id]))
+            if j > len(self.spk2utt[voice_id]) -1:
+                j = np.random.randint(low=0,high=len(self.spk2utt[voice_id]))
+            self.face_counts+=1
+            self.voice_counts+=1
 
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
