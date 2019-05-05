@@ -128,14 +128,12 @@ def get_data_loaders(bs):
     train_spk2utt = {spk:trainval_spk2utt[spk][:20] for spk in train_voice_list}
     valid_spk2utt = {spk:trainval_spk2utt[spk][20:] for spk in train_voice_list}
     
-    ## For Test data
-
 
     train_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt,mode="t")
     valid_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,valid_spk2utt,mode="v")
     print('Creating loaders with batch_size as ', bs)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=8,pin_memory= True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=3,pin_memory= True)
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=4,pin_memory = True)
     
     print("Time taken for data loading: ", time.time() - start)
