@@ -74,12 +74,13 @@ class ClassifyDataset(torch.utils.data.Dataset):
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
         if self.mode == "t":
-            i = self.face_counts[index]
+            i = int(self.face_counts[index]) % self.num_voice_repeats
+            j = int(self.voice_counts[index]) % self.num_face_repeats
             self.face_counts+=1
             self.voice_counts+=1
         else:
-            i = self.face_counts[index]
-            j = self.voice_counts[index]
+            i = int(self.face_counts[index]) % self.num_voice_repeats
+            j = int(self.voice_counts[index]) % self.num_face_repeats
             if i > len(self.face_list[index]-31):
                 i = np.random.randint(low=31,high=len(self.face_data[face_id]))
             if j > len(self.spk2utt[voice_id]) -1:
