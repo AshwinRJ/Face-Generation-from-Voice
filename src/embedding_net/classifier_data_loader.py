@@ -89,7 +89,10 @@ class ClassifyDataset(torch.utils.data.Dataset):
             self.voice_counts+=1
 
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
-        voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
+        try:
+            voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
+        except:
+            print(j,voice_id,len(self.spk2utt[voice_id]))
         assert(face_embed.size(0)==512 and voice_embed.size(0)==512)
         return (voice_embed, face_embed,index)
     
