@@ -45,64 +45,18 @@ END OF UTILS FUNCTIONS
 """""
 
 class ClassifyDataset(torch.utils.data.Dataset):
-    def __init__(self, face_data, face_list, voice_data, voice_list,spk2utt,mode="t"):
+    def __init__(self, utt_ids,voice_data,face_data,labels):
         self.face_data = face_data
-        self.face_list = face_list
         self.voice_data = voice_data
-        self.voice_list = voice_list
-        self.spk2utt = spk2utt
-        self.num_class = 5994
-        self.mode = mode
-        self.face_counts = np.zeros((self.num_class))
-        self.voice_counts = np.zeros((self.num_class))
-        if mode == 't':
-            self.face_index_list = np.arange(30)
-            self.voice_index_list = np.arange(20)
-            self.num_face_repeats = 30 
-            self.num_voice_repeats = 20
-        else:
-            self.face_counts = 30 * np.ones((self.num_class))
-            self.num_face_repeats = 10
-            self.num_voice_repeats = 10
+        self.utt_ids = utt_ids
+        self.num_class = 5992
         
 
     def __len__(self):
-        return self.num_class * (self.num_face_repeats * self.num_voice_repeats)
+        return len(self.face_data)
 
     def __getitem__(self, index):
-
-        """
-        index = int(index % self.num_class)
-        face_id = self.face_list[index]
-        voice_id = self.voice_list[index]
-        if self.mode == "t":
-            i = int(self.face_counts[index]) % self.num_voice_repeats
-            j = int(self.voice_counts[index]) % self.num_face_repeats
-            self.face_counts+=1
-            self.voice_counts+=1
-        else:
-            i = int(self.face_counts[index]) % self.num_voice_repeats
-            j = int(self.voice_counts[index]) % self.num_face_repeats
-            if i > len(self.face_list[index]-31):
-                i = np.random.randint(low=31,high=len(self.face_data[face_id]))
-            if j > len(self.spk2utt[voice_id]) -1:
-                j = np.random.randint(low=0,high=len(self.spk2utt[voice_id]))
-            self.face_counts+=1
-            self.voice_counts+=1
-        if j >= 20:
-            print("j,voice_id,spk2utt[voice_id] len"j,voice_id,len(self.spk2utt[voice_id]))
-
-        face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
-        try:
-            voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
-        except:
-            print("j,voice_id,spk2utt[voice_id] len"j,voice_id,len(self.spk2utt[voice_id]))
-        assert(face_embed.size(0)==512 and voice_embed.size(0)==512)
-        return (voice_embed, face_embed,index)
-    """
-## Index- pair (f,c)
-#Create list that maps face_vec_id,voice_vec_id,
-
+        return (self.voice_data[self.utt_ids[index]],self.face_data[index],self.labels[index])
 
 def get_data_loaders(bs):
     start = time.time()
@@ -132,31 +86,47 @@ def get_data_loaders(bs):
     trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
     
-    train_utts =[]
-    train_labels = []
-    valid_utts = []
-    valid_labels = []
-    train_face_embeds = []
-    train_face_labels = []
-    valid_face_embeds = []
-    valid_face_labels = []
-
+    train_utt_ids = []
+    train_face_embeds=[]
+    train_labels =[]
+    valid_utt_ids =[]
+    valid_face_embeds=[]
+    valid_labels=[]
+    train_spk_list = train_voice_list
     ## Get voice utt iD's , labels to extract feats from train_xvec
-    for i in range(len(list(trainval_spk2utt.keys()))):
-        train_utts.extend(trainval_spk2utt[i][:20])
-        train_labels.extend([i]*20)
-        valid_utts.extend(trainval_spk2utt[i][20:])
-        sp =len(trainval_spk2utt[i][20:])
-        valid_labels.extend([i]*sp)
-        train_utts.extend()
+    for i in range(len(list(train_spk_list))):
+    ## TRAIN
+        utt_ids = trainval_spk2utt[train_spk_list[i]][:20]
+        face_ids = face_embed_data[train_face_list[i]][:20]
+        labels = [i] *20
+        train_utt_ids.extend(utt_ids)
+        train_face_embeds.extend(face_ids)
+        train_labels.extend(labels)
+    ## VALID
+        utt_ids = trainval_spk2utt[train_spk_list[i]][20:25]
+        if len(utt_ids) < 5:
+        #print('INIT LEN ',len(utt_ids),utt_ids)
+            diff = -(len(utt_ids)-5)
+        #print('DIFF is',diff,"Factor is ",diff//len(utt_ids)+1)
+            utt_ids = utt_ids * (diff//len(utt_ids)+1)
+        #print('LATER LEN ',len(utt_ids),utt_ids)
+
+            if len(utt_ids)-5 !=0:
+                diff = -(len(utt_ids)-5)
+            #print('SECOND DIFF is',diff)
+                utt_ids = utt_ids + utt_ids[:diff]
+            #print('FINAL LEN IS',len(utt_ids))
+            assert(len(utt_ids)==5)
+        #print(train_spk_list[i],len(trainval_spk2utt[train_spk_list[i]]))
+        face_ids = face_embed_data[train_face_list[i]][20:25]
+        labels = [i] *25
+        valid_utt_ids.extend(utt_ids)
+        valid_face_embeds.extend(face_ids)
+        valid_labels.extend(labels)
 
 
-    # Get face ID's , labels, to extract feats from face_data
-
-
-
-    train_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt,mode="t")
-    valid_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,valid_spk2utt,mode="v")
+    train_dataset = ClassifyDataset(train_utt_ids,train_xvec,train_face_embeds,train_labels)
+    valid_dataset = ClassifyDataset(valid_utt_ids,train_xvec,valid_face_embeds,valid_labels)
     print('Creating loaders with batch_size as ', bs)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=3,pin_memory= True)
