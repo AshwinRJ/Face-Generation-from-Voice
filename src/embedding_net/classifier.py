@@ -7,7 +7,7 @@ import time
 import itertools
 
 class Classifier(nn.Module):
-    def __init__(self,hiddens=[300,150,50],num_classes=5794):
+    def __init__(self,hiddens=[300,150,50],num_classes=5992):
         super(Classifier,self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512

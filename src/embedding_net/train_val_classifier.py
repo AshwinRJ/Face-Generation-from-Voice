@@ -18,7 +18,7 @@ lp = open("./"+expt_prefix+"log","w+") ## Output log file
 class TrainValidate():
 
 
-    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=False):
+    def __init__(self,hiddens=[250,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
@@ -142,7 +142,7 @@ class TrainValidate():
             nn.init.constant_(m.weight, 1)
             nn.init.constant_(m.bias, 0)      
         elif isinstance(m, nn.Linear):
-            nn.init.xavier_normal_(m.weight)
+            nn.init.orthogonal_(m.weight)
             nn.init.constant_(m.bias,0)
     
     def test(self,embedding):

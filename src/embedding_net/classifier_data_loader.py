@@ -70,6 +70,8 @@ class ClassifyDataset(torch.utils.data.Dataset):
         return self.num_class * (self.num_face_repeats * self.num_voice_repeats)
 
     def __getitem__(self, index):
+
+        """
         index = int(index % self.num_class)
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
@@ -97,7 +99,7 @@ class ClassifyDataset(torch.utils.data.Dataset):
             print("j,voice_id,spk2utt[voice_id] len"j,voice_id,len(self.spk2utt[voice_id]))
         assert(face_embed.size(0)==512 and voice_embed.size(0)==512)
         return (voice_embed, face_embed,index)
-    
+    """
 ## Index- pair (f,c)
 #Create list that maps face_vec_id,voice_vec_id,
 
@@ -125,15 +127,33 @@ def get_data_loaders(bs):
             test_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
     train_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
-    
     assert(len(list(train_xvec.keys()))==1092009)
 
     trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
     
-    train_spk2utt = {spk:trainval_spk2utt[spk][:20] for spk in train_voice_list}
-    valid_spk2utt = {spk:trainval_spk2utt[spk][20:] for spk in train_voice_list}
-    
+    train_utts =[]
+    train_labels = []
+    valid_utts = []
+    valid_labels = []
+    train_face_embeds = []
+    train_face_labels = []
+    valid_face_embeds = []
+    valid_face_labels = []
+
+    ## Get voice utt iD's , labels to extract feats from train_xvec
+    for i in range(len(list(trainval_spk2utt.keys()))):
+        train_utts.extend(trainval_spk2utt[i][:20])
+        train_labels.extend([i]*20)
+        valid_utts.extend(trainval_spk2utt[i][20:])
+        sp =len(trainval_spk2utt[i][20:])
+        valid_labels.extend([i]*sp)
+        train_utts.extend()
+
+
+    # Get face ID's , labels, to extract feats from face_data
+
+
 
     train_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt,mode="t")
     valid_dataset = ClassifyDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,valid_spk2utt,mode="v")
