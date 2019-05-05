@@ -2,7 +2,7 @@
 import os
 import torch
 import torch.nn as nn
-from classifer_data_loader import get_data_loaders
+from classifier_data_loader import get_data_loaders
 from classifier import Classifier
 from tensorboardX import SummaryWriter
 import time
@@ -18,7 +18,7 @@ lp = open("./"+expt_prefix+"log","w+") ## Output log file
 class TrainValidate():
 
 
-    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=True):
+    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
@@ -49,12 +49,13 @@ class TrainValidate():
             tstart=time.time()
             print("-------------------------------------------------------------------------------------------")
             print("Processing epoch "+str(epoch))
-            self.train_loss=self.run_epoch(train_loader) 
-            print('Done pass')
-            tlog.add_scalar('Train Loss', self.train_loss)
+            self.train_loss,ftacc,vtacc=self.run_epoch(train_loader) 
+            train_acc = 0.5 *(ftacc + vtacc)
+            tlog.add_scalar('Train Loss', self.train_loss,"Training Accuracy",train_acc,"Face Accuracy",ftacc,"Voice Accuracy",vtacc)
             print('Training Loss is ', self.train_loss, ' Learning Rate is ', self.get_lr())
-            self.eval_loss=self.run_epoch(valid_loader,False)
-            vlog.add_scalar('Validation Loss'+ str(epoch), self.eval_loss)
+            self.eval_loss,fvacc,vvacc=self.run_epoch(valid_loader,False)
+            valid_acc = 0.5 * (fvacc + vvacc)
+            vlog.add_scalar('Validation Loss'+ str(epoch), self.eval_loss,"Validation Accuracy",valid_acc,"Face Accuracy",fvacc,"Voice Accuracy",vvacc)
             print('Validation Loss is ',self.eval_loss)
             tend=time.time()
             print('Epoch ',str(epoch), ' was done in ',str(tend-tstart),' seconds')
@@ -91,25 +92,40 @@ class TrainValidate():
     def run_epoch(self,loader,update=True):
         epoch_loss = 0
         start_time = time.time()
+        faccu = 0
+        vaccu = 0
         for batch_index,(voice_batch,face_batch,class_labels) in enumerate(loader):
             self.optimizer.zero_grad()
            # print('Embedding size',embedding.size())
+            face_batch = face_batch.to(device)
+            voice_batch = voice_batch.to(device)
+            class_labels = class_labels.to(device)
             face_logits = self.net(face_batch)
              ##Net takes voice, faces
             loss = self.criterion(face_logits,class_labels)
             epoch_loss += loss.item()
+            fop = torch.nn.functional.Softmax(face_logits,dim=1)
+            _,fpred=torch.max(fop,1)
+            facc=torch.sum(torch.flatten(fpred==class_labels))
+            faccu+= facc.item() 
             if update:
                 loss.backward()
                 self.optimizer.step()
             voice_logits = self.net(voice_batch,face=False)
             loss = self.criterion(voice_logits,class_labels)
             epoch_loss += loss.item()
+            vop = torch.nn.functional.Softmax(voice_logits,dim=1)
+            _,vpred=torch.max(vop,1)
+            vacc=torch.sum(torch.flatten(vpred==class_labels))
+            vaccu+=vacc.item()
             if update:
                 loss.backward()
                 self.optimizer.step()
         torch.cuda.empty_cache()
         epoch_loss /= (batch_index+1)
-        return epoch_loss
+        faccu /= (batch_index +1)
+        vaccu /= (batch_index +1)
+        return epoch_loss,faccu,vaccu
 
     def load(self,path):
         checkpoint = torch.load(path)

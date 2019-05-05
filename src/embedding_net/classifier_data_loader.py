@@ -169,26 +169,20 @@ class EmbedDataset(torch.utils.data.Dataset):
         face_id = self.face_list[index]
         voice_id = self.voice_list[index]
         if self.mode == "t":
-            i = np.random.randint(low=0,high=min(self.num_face_repeats,len(self.face_data[face_id][:20])))
+            i = np.random.randint(low=0,high=20)
         else:
-            i = np.random.randint(low=0,high=min(self.num_face_repeats,len(self.face_data[face_id][20:])))
+            i = np.random.randint(low=21,high=len(self.face_data[face_id]))
 
         j = np.random.randint(low=0,high=min(self.num_voice_repeats,len(self.spk2utt[voice_id])))
 
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
         assert(face_embed.size(0)==512 and voice_embed.size(0)==512)
-            
         return (voice_embed, face_embed,index)
     
 ## Index- pair (f,c)
 #Create list that maps face_vec_id,voice_vec_id,
 
-def custom_collate(batch):
-    voice_batch_embeddings = torch.tensor([item[0] for item in batch])
-    face_batch_embeddings = torch.tensor([item[1] for item in batch])
-    class_labels = torch.LongTensor([item[2] for item in batch])
-    return voice_batch_embeddings, face_batch_embeddings,class_labels
 
 def get_data_loaders(bs):
     start = time.time()
@@ -212,10 +206,6 @@ def get_data_loaders(bs):
             test_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
             test_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-    valid_face_list = train_face_list[-200:]
-    train_face_list = train_face_list[:-200]
-    valid_voice_list = train_voice_list[-200:]
-    train_voice_list = train_voice_list[:-200]
     train_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
     
     assert(len(list(train_xvec.keys()))==1092009)
@@ -227,23 +217,14 @@ def get_data_loaders(bs):
     valid_spk2utt = {spk:trainval_spk2utt[spk][-20:] for spk in train_voice_list}
     
     ## For Test data
-    test_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
-    assert(len(list(test_xvec.keys()))==36237)
-    test_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_test','r').readlines()}
-    assert(len(list(test_spk2utt.keys()))==118)
 
 
     train_dataset = EmbedDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,train_spk2utt,mode="t")
     valid_dataset = EmbedDataset(face_embed_data, train_face_list, train_xvec, train_voice_list,valid_spk2utt,mode="v")
-    test_dataset = EmbedDataset(face_embed_data, test_face_list, test_xvec, test_voice_list,test_spk2utt)
     print('Creating loaders with batch_size as ', bs)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4,
-                                               collate_fn=custom_collate, pin_memory= True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=4,
-                                               collate_fn=custom_collate, pin_memory = True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=3,
-                                              collate_fn=custom_collate, pin_memory = True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=4,pin_memory= True)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=4,pin_memory = True)
     
     print("Time taken for data loading: ", time.time() - start)
-    return train_loader,valid_loader,test_loader
+    return train_loader,valid_loader,None
