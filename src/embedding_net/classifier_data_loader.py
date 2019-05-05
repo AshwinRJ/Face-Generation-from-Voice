@@ -87,12 +87,14 @@ class ClassifyDataset(torch.utils.data.Dataset):
                 j = np.random.randint(low=0,high=len(self.spk2utt[voice_id]))
             self.face_counts+=1
             self.voice_counts+=1
+        if j >= 20:
+            print("j,voice_id,spk2utt[voice_id] len"j,voice_id,len(self.spk2utt[voice_id]))
 
         face_embed = torch.Tensor(np.array(self.face_data[face_id][i]))
         try:
             voice_embed = torch.Tensor(np.array(self.voice_data[self.spk2utt[voice_id][j]]))
         except:
-            print(j,voice_id,len(self.spk2utt[voice_id]))
+            print("j,voice_id,spk2utt[voice_id] len"j,voice_id,len(self.spk2utt[voice_id]))
         assert(face_embed.size(0)==512 and voice_embed.size(0)==512)
         return (voice_embed, face_embed,index)
     
