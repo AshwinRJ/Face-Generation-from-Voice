@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from data_loader import train_loader
 from model import *
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
@@ -64,16 +65,17 @@ if opt.load != '':
     checkpoint = torch.load(opt.load)
     trained_epoch = checkpoint['epoch']
     netD.load_state_dict(checkpoint['discriminator'])
-    netG.generator.load_state_dict(checkpoint['generator'])
+    netG.load_state_dict(checkpoint['generator'])
 
 
 # Initialize BCELoss function
 criterion = nn.BCELoss()
 
-fixed_noise = torch.randn(opt.bs, nz, 1, 1, device=device)
+fixed_noise = torch.randn(opt.bs, nz // 2, 1, 1, device=device)
 real_label = 1
 fake_label = 0
-
+G_losses=[]
+D_losses=[]
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -147,14 +149,14 @@ for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
         D_G_z2 = output.mean().item()
 
         optimizerG.step()  # Update G
-
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
-              % (epoch, opt.nepoch, i, len(train_loader),
+        if i % 600 ==0: 
+            print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
+              % (epoch, trained_epoch + opt.nepoch, i, len(train_loader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
         # Save Losses for plotting later
-        # G_losses.append(errG.item())
-        # D_losses.append(errD.item())
+        G_losses.append(errG.item())
+        D_losses.append(errD.item())
 
         if i % 100 == 0:
             vutils.save_image(real_cpu,
@@ -175,3 +177,12 @@ for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
 
         save_path = "saved_models/ck_{}.pth.tar".format(epoch+1)
         torch.save(state_dict, save_path)
+
+fig=plt.figure(figsize=(10,5))
+plt.title("Generator and Discriminator Loss During Training")
+plt.plot(G_losses,label="G")
+plt.plot(D_losses,label="D")
+plt.xlabel("iterations")
+plt.ylabel("Loss")
+plt.legend()
+plt.savefig("Losses")

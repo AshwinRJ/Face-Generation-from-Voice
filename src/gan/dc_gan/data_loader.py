@@ -60,4 +60,4 @@ tuples = load_json('../../../../data/2000spk_tuples.json')
 
 train_set = GANDL(tuples, norm_xvec)
 
-train_loader = DataLoader(train_set, batch_size=128, shuffle=True, pin_memory=True, num_workers=6)
+train_loader = DataLoader(train_set, batch_size=256, shuffle=True, pin_memory=True, num_workers=6)
