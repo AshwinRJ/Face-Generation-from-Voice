@@ -9,7 +9,7 @@ import itertools
 
 
 class EmbeddingNet(nn.Module):
-    def __init__(self,hidden_dims=[512,512,256,128,50],dropout_prob=0.4):
+    def __init__(self,hidden_dims=[512,256,128,50],dropout_prob=0.4):
         super(EmbeddingNet,self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512

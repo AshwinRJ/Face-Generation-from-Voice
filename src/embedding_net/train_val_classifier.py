@@ -18,7 +18,7 @@ lp = open("./"+expt_prefix+"log","w+") ## Output log file
 class TrainValidate():
 
 
-    def __init__(self,hiddens=[250,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=False):
+    def __init__(self,hiddens=[256,128,50],num_epochs=2000,initial_lr=1e-3,batch_size=3500,weight_decay=1e-3,load=False):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = torch.nn.CrossEntropyLoss(reduction='mean')
@@ -28,7 +28,7 @@ class TrainValidate():
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
         self.valid_loss = 0.0
-        self.patience = 1000
+        self.patience = 100
         self.lr = initial_lr
         self.optimizer =  torch.optim.Adam(self.net.parameters(),lr=self.lr,weight_decay=weight_decay)
         self.init_epoch = 0
@@ -42,7 +42,7 @@ class TrainValidate():
 
     def train_validate(self):
         print('Batch size is',self.bs)
-        train_loader,valid_loader, test_loader = get_data_loaders(self.bs)
+        train_loader,valid_loader,_ = get_data_loaders(self.bs)
         sch = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,patience=self.patience,min_lr=1e-7)
         best_loss= np.inf
         for epoch in range(self.init_epoch,self.num_epochs+self.init_epoch):
@@ -52,11 +52,11 @@ class TrainValidate():
             self.train_loss,ftacc,vtacc=self.run_epoch(train_loader) 
             train_acc = 0.5 *(ftacc + vtacc)
             tlog.add_scalar('Train Loss', self.train_loss)
-            print('Training Loss is ', self.train_loss, "Training Accuracy",train_acc,"Face Accuracy",ftacc,"Voice Accuracy",vtacc,' Learning Rate is ', self.get_lr())
-            self.eval_loss,fvacc,vvacc=self.run_epoch(valid_loader,False)
+            print("Training Loss: {:0.5f} | Training Acc: {:0.4f} | Face Acc: {:0.4f} | Voice Acc: {:0.4f} | LR: {:0.5f}".format(self.train_loss, train_acc,ftacc,vtacc,self.get_lr()))
+            self.eval_loss, fvacc, vvacc = self.run_epoch(valid_loader,False)
             valid_acc = 0.5 * (fvacc + vvacc)
             vlog.add_scalar('Validation Loss'+ str(epoch), self.eval_loss)
-            print('Validation Loss is ',self.eval_loss,"Validation Accuracy",valid_acc,"Face Accuracy",fvacc,"Voice Accuracy",vvacc)
+            print("Validation Loss: {:0.5f} | Validation Acc: {:0.4f} | Val Face Acc: {:0.4f} | Val Voice Acc: {:0.4f}".format(self.eval_loss, valid_acc,fvacc,vvacc))
             tend=time.time()
             print('Epoch ',str(epoch), ' was done in ',str(tend-tstart),' seconds')
             print("-------------------------------------------------------------------------------------------")
@@ -90,42 +90,45 @@ class TrainValidate():
             
 
     def run_epoch(self,loader,update=True):
-        epoch_loss = 0
+        epoch_face_loss = 0
+        epoch_voice_loss = 0
         start_time = time.time()
         faccu = 0
         vaccu = 0
         for batch_index,(voice_batch,face_batch,class_labels) in enumerate(loader):
             self.optimizer.zero_grad()
            # print('Embedding size',embedding.size())
-            face_batch = face_batch.to(device)
-            voice_batch = voice_batch.to(device)
-            class_labels = class_labels.to(device)
-            face_logits = self.net(face_batch)
+            face_batch = torch.FloatTensor(face_batch).to(device)
+            voice_batch = torch.FloatTensor(voice_batch).to(device)
+            class_labels = torch.LongTensor(class_labels).to(device)
+            face_logits = self.net(face_batch,face=True)
              ##Net takes voice, faces
             loss = self.criterion(face_logits,class_labels)
-            epoch_loss += loss.item()
-            fop = torch.nn.functional.Softmax(face_logits,dim=1)
+            epoch_face_loss += loss.item()
+            fop = torch.nn.functional.softmax(face_logits,dim=1)
             _,fpred=torch.max(fop,1)
             facc=torch.sum(torch.flatten(fpred==class_labels))
-            faccu+= facc.item() 
+            faccu+= facc.item() / len(face_logits)
             if update:
                 loss.backward()
-                self.optimizer.step()
+                #self.optimizer.step()
             voice_logits = self.net(voice_batch,face=False)
             loss = self.criterion(voice_logits,class_labels)
-            epoch_loss += loss.item()
-            vop = torch.nn.functional.Softmax(voice_logits,dim=1)
-            _,vpred=torch.max(vop,1)
+            epoch_voice_loss += loss.item()
+            vop = torch.nn.functional.softmax(voice_logits,dim=1)
+            _,vpred=torch.max(vop,dim=1)
             vacc=torch.sum(torch.flatten(vpred==class_labels))
-            vaccu+=vacc.item()
+            vaccu+=vacc.item() / len(voice_batch)
             if update:
                 loss.backward()
                 self.optimizer.step()
             del face_logits,voice_logits,fpred,vpred
         torch.cuda.empty_cache()
-        epoch_loss /= (batch_index+1)
+        epoch_voice_loss /= (batch_index+1)
+        epoch_face_loss /= (batch_index+1)
         faccu /= (batch_index +1)
         vaccu /= (batch_index +1)
+        epoch_loss = 0.5*(epoch_voice_loss + epoch_face_loss)
         return epoch_loss,faccu,vaccu
 
     def load(self,path):
