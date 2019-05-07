@@ -20,7 +20,7 @@ torch.backends.cudnn.benchmark = True
 
 
 device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-base_path = "../../../data/new_images/"
+base_path = "../../../../data/new_images/"
 
 
 
@@ -52,8 +52,8 @@ class GANDL(torch.utils.data.Dataset):
 
 ## Read voice_utt_ids
 
-norm_xvec = load_json('../../../data/norm_train_xvecs.json')
-tuples = load_json('../../../data/2000spk_tuples.json')
+norm_xvec = load_json('../../../../data/norm_train_xvecs.json')
+tuples = load_json('../../../../data/2000spk_tuples.json')
 
 train_set = GANDL(tuples,norm_xvec)
 

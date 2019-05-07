@@ -10,12 +10,12 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-
+from data_loader import train_loader
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
-parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=64,
+parser.add_argument('--bs', type=int, default=128, help='input batch size')
+parser.add_argument('--imsize', type=int, default=64,
                     help='the height / width of the input image to network')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
@@ -27,7 +27,6 @@ parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--load', default='', help="path to saved models")
 parser.add_argument('--outf', default='saved_models/', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
-
 opt = parser.parse_args()
 print(opt)
 
@@ -43,7 +42,7 @@ random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
 cudnn.benchmark = True
-
+"""
 "==========================================================================="
 # DataLoader
 if opt.dataset in ['imagenet', 'folder', 'lfw']:
@@ -71,9 +70,9 @@ def scale_loss(image_tgt, image_pred,scales):
     nn.MSELoss(scale_layer(image_tgt),scale_layer(image_pred))
 
 "==========================================================================="
-
+"""
 # parameters
-device = torch.device("cuda" if opt.cuda else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ngpu = int(opt.ngpu)
 nz = int(opt.nz)
 ngf = int(opt.ngf)
@@ -109,7 +108,7 @@ optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 "==========================================================================="
 # Training
 for epoch in tnrange(trained_epochs+1, trained_epochs+opt.nepoch+1):
-    for i, data in enumerate(dataloader, 0):
+    for i, data in enumerate(train_loader, 0):
 
         "Udpate D-Net: maximize log(D(x)) + log(1 - D(G(z)))"
 
