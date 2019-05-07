@@ -19,9 +19,8 @@ import itertools
 torch.backends.cudnn.benchmark = True
 
 
-device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 base_path = "../../../../data/new_images/"
-
 
 
 def load_json(filename='data.json'):
@@ -34,8 +33,9 @@ def write_to_json(data, filename='data.json'):
     with open(filename, 'w') as outfile:
         json.dump(data, outfile)
 
+
 class GANDL(torch.utils.data.Dataset):
-    def __init__(self,tuple_set,spk_feats):
+    def __init__(self, tuple_set, spk_feats):
         self.tuple_set = tuple_set
         self.voice_embeds = spk_feats
 
@@ -43,18 +43,19 @@ class GANDL(torch.utils.data.Dataset):
         return len(self.tuple_set)
 
     def __getitem__(self, index):
-        utt_id,face_path,label = self.tuple_set[index][0],self.tuple_set[index][1],self.tuple_set[index][2]
+        utt_id, face_path, label = self.tuple_set[index][0], self.tuple_set[index][1], self.tuple_set[index][2]
         voice_embed = torch.tensor(np.array(self.voice_embeds[utt_id]))
-        face = torch.tensor(Image.open(base_path+face_path))
+        face = torch.tensor(Image.open(base_path+face_path).resize((64, 64)))
         labels = torch.LongTensor(label)
-        
-        return voice_embed,face,labels 
 
-## Read voice_utt_ids
+        return voice_embed, face, labels
+
+# Read voice_utt_ids
+
 
 norm_xvec = load_json('../../../../data/norm_train_xvecs.json')
 tuples = load_json('../../../../data/2000spk_tuples.json')
 
-train_set = GANDL(tuples,norm_xvec)
+train_set = GANDL(tuples, norm_xvec)
 
-train_loader = DataLoader(train_set,batch_size=128,shuffle=True,pin_memory=True,num_workers=6)
+train_loader = DataLoader(train_set, batch_size=128, shuffle=True, pin_memory=True, num_workers=6)

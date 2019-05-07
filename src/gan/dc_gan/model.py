@@ -4,12 +4,14 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 
 # Hardcoded parameters
-nc=3
-nz=100
-ngf=64
-ndf=64
+nc = 3
+nz = 100
+ngf = 64
+ndf = 64
 
 # custom weights initialization called on netG and netD
+
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -20,6 +22,7 @@ def weights_init(m):
 
 # Generator Code
 
+
 class Custom_generator(nn.Module):
     def __init__(self, ngpu, voice_dim=512, embed_dim=50):
         super(Custom_generator, self).__init__()
@@ -29,11 +32,12 @@ class Custom_generator(nn.Module):
     def forward(self, noise, voice_embeds):
         """ Noise --> B x nz x 1 x 1 | Voice embeds --> B x E
         """
-        voice_embeds = self.projection(voice_embeds) # B x 50
-        voice_embeds = voice_embeds.unsqueeze(2).unsqueeze(3) # B x 50 x 1 x 1
+        voice_embeds = self.projection(voice_embeds)  # B x 50
+        voice_embeds = voice_embeds.unsqueeze(2).unsqueeze(3)  # B x 50 x 1 x 1
 
-        input = torch.cat((noise, voice_embeds), dim=1) # B x 100 x 1 x 1
+        input = torch.cat((noise, voice_embeds), dim=1)  # B x 100 x 1 x 1
         return self.generator(input)
+
 
 class Projection_net(nn.Module):
     def __init__(self, voice_dim, embed_dim):
@@ -42,6 +46,7 @@ class Projection_net(nn.Module):
 
     def forward(self, input):
         return self.projection(input)
+
 
 class Generator(nn.Module):
     def __init__(self, ngpu):
