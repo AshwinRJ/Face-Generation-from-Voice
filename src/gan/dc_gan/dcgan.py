@@ -78,13 +78,17 @@ fake_label = 0
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-#trained_epoch = 1
+flag = 1
 "==========================================================================="
 # Training
 for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
     for i, batch in enumerate(train_loader, 0):
         batch_voice, face_real, gold_labels = batch
         batch_voice, gold_labels = batch_voice.to(device), gold_labels.to(device)
+
+        if flag and i == 0:
+            fixed_voice = batch_voice
+            flag = 0
 
         "Udpate D-Net: maximize log(D(x)) + log(1 - D(G(z)))"
 
@@ -156,7 +160,7 @@ for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
             vutils.save_image(real_cpu,
                               '%s/real_samples.png' % opt.outf,
                               normalize=True)
-            fake = netG(fixed_noise,batch_voice)
+            fake = netG(fixed_noise, fixed_voice)
             vutils.save_image(fake.detach(),
                               '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
                               normalize=True)
