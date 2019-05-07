@@ -156,7 +156,7 @@ for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
             vutils.save_image(real_cpu,
                               '%s/real_samples.png' % opt.outf,
                               normalize=True)
-            fake = netG(fixed_noise)
+            fake = netG(fixed_noise,batch_voice)
             vutils.save_image(fake.detach(),
                               '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
                               normalize=True)
