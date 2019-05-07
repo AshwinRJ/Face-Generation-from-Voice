@@ -65,14 +65,14 @@ elif opt.dataset == 'fake':
     nc = 3
 
 assert dataset
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.bs,
                                          shuffle=True, num_workers=int(opt.workers))
 
 
 def scale_loss(image_tgt, image_pred,scales):
-    nn.MSELoss(scale_layer(image_tgt),scale_layer(image_pred))
+#    nn.MSELoss(scale_layer(image_tgt),scale_layer(image_pred))
 
-"==========================================================================="
+===========================================================================
 """
 # parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -99,7 +99,7 @@ if opt.load != '':
 # Initialize BCELoss function
 criterion = nn.BCELoss()
 
-fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
+fixed_noise = torch.randn(opt.bs, nz, 1, 1, device=device)
 real_label = 1
 fake_label = 0
 
