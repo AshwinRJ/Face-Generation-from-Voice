@@ -44,9 +44,11 @@ class GANDL(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         utt_id, face_path, label = self.tuple_set[index][0], self.tuple_set[index][1], self.tuple_set[index][2]
-        voice_embed = torch.tensor(np.array(self.voice_embeds[utt_id]))
-        face = torch.tensor(Image.open(base_path+face_path).resize((64, 64)))
-        labels = torch.LongTensor(label)
+        voice_embed = torch.from_numpy(np.array(self.voice_embeds[utt_id])).float()
+        face = Image.open(base_path+face_path)
+        face = np.array(face.resize((64, 64)))
+        face = torchvision.transforms.ToTensor()(face)
+        labels = torch.tensor(label).long()
 
         return voice_embed, face, labels
 

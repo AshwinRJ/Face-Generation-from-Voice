@@ -45,35 +45,6 @@ random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
 cudnn.benchmark = True
-"""
-"==========================================================================="
-# DataLoader
-if opt.dataset in ['imagenet', 'folder', 'lfw']:
-    # folder dataset
-    dataset = dset.ImageFolder(root=opt.dataroot,
-                               transform=transforms.Compose([
-                                   transforms.Resize(opt.imageSize),
-                                   transforms.CenterCrop(opt.imageSize),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                               ]))
-    nc = 3
-
-elif opt.dataset == 'fake':
-    dataset = dset.FakeData(image_size=(3, opt.imageSize, opt.imageSize),
-                            transform=transforms.ToTensor())
-    nc = 3
-
-assert dataset
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.bs,
-                                         shuffle=True, num_workers=int(opt.workers))
-
-
-def scale_loss(image_tgt, image_pred,scales):
-#    nn.MSELoss(scale_layer(image_tgt),scale_layer(image_pred))
-
-===========================================================================
-"""
 # parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ngpu = int(opt.ngpu)
@@ -88,7 +59,7 @@ netG.apply(weights_init)
 
 netD = Discriminator(ngpu).to(device)
 netD.apply(weights_init)
-
+trained_epoch = 0
 if opt.load != '':
     checkpoint = torch.load(opt.load)
     trained_epoch = checkpoint['epoch']
@@ -107,10 +78,10 @@ fake_label = 0
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-
+#trained_epoch = 1
 "==========================================================================="
 # Training
-for epoch in tnrange(trained_epochs+1, trained_epochs+opt.nepoch+1):
+for epoch in tnrange(trained_epoch+1, trained_epoch+opt.nepoch+1):
     for i, batch in enumerate(train_loader, 0):
         batch_voice, face_real, gold_labels = batch
         batch_voice, gold_labels = batch_voice.to(device), gold_labels.to(device)
