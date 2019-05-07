@@ -87,10 +87,20 @@ class Discriminator(nn.Module):
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
-        self.main = nn.Sequential(
+
+        self.projection = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+
+        self.downsampled_projection = nn.Sequential(
+            # input is (nc) x 32 x 32
+            nn.Conv2d(nc, ndf, 1, 1, 0, bias=False),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+
+        self.main = nn.Sequential(
             # state size. (ndf) x 32 x 32
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
@@ -108,10 +118,9 @@ class Discriminator(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+    def forward(self, input, downsampled=False):
+        if downsampled:
+            out = self.downsampled_projection(input)
         else:
-            output = self.main(input)
-
-        return output
+            out = self.projection(input)
+        return self.main(out)
