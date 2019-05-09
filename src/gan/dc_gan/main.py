@@ -1,11 +1,8 @@
-
+import argparse
 import os
 import random
-import argparse
-from tqdm import tnrange
-import matplotlib.pyplot as plt
-
 import torch
+from tqdm import tnrange
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
@@ -14,10 +11,9 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-
 from data_loader import train_loader
 from model import *
-from options import args_parser
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
