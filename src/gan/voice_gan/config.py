@@ -13,7 +13,7 @@ def args_parser():
     parser.add_argument('--save_name', default='', help="Tag name for saved models")
     parser.add_argument('--outf', default='saved_models/',
                         help='folder to output images and model checkpoints')
-    parser.add_argument('--joint_path', type=str, default='saved_models/joint_model.pt',
+    parser.add_argument('--joint_net_path', type=str, default='../../embedding_net/v4logs/model_dict30.pt',
                         help='Path to the pretrained Joint Embedding Model')
 
     # Training parameters

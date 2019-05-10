@@ -58,10 +58,10 @@ if __name__ == '__main__':
         joint_net_ck = torch.load(opt.joint_net_path)
         pretrained_dict = joint_net_ck['model_state_dict']
 
-        model_dict = netG.Joint_embedding_net.state_dict()
+        model_dict = netG.joint_embedding.state_dict()
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
         model_dict.update(pretrained_dict)
-        netG.Joint_embedding_net.load_state_dict(pretrained_dict)
+        netG.joint_embedding.load_state_dict(pretrained_dict)
 
     # Criterion
     criterion = nn.BCELoss()
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             batch_voice, gold_labels = batch_voice.to(device), gold_labels.to(device)
 
             if flag:
-                vutils.save_image(real_batch, '{}/{}_real.png'.format(
+                vutils.save_image(face_real, '{}/{}_real.png'.format(
                                     opt.outf, opt.save_name), normalize=True)
                 fixed_voice = batch_voice
                 flag = False
