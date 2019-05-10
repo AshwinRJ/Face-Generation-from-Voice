@@ -40,10 +40,10 @@ if __name__ == '__main__':
 
     # Models
     # Sphere face
-    sphereface = sphere20a()
-    sphereface.load_state_dict(torch.load('sphereface/model/sphere20a_20171020.pth'))
-    sphereface.to(device)
-    sphereface.eval()
+    # sphereface = sphere20a()
+    # sphereface.load_state_dict(torch.load('sphereface/model/sphere20a_20171020.pth'))
+    # sphereface.to(device)
+    # sphereface.eval()
 
     # Generator and Discriminator
     netD = Discriminator(ngpu).to(device)
