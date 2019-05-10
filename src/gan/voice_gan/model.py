@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-
 from config import args_parser
 
 "Voice GAN Arch"
@@ -11,9 +9,9 @@ from config import args_parser
 
 
 class Custom_generator(nn.Module):
-    def __init__(self, ngpu, voice_dim=512, embed_dim=50): class sphere20a(nn.Module):
+    def __init__(self, ngpu, voice_dim=512, embed_dim=50):
         super(Custom_generator, self).__init__()
-        self.generator = DC_Generator(ngpu)
+        self.generator = Generator(ngpu)
         self.joint_embedding = Joint_embedding_net(voice_dim, embed_dim)
 
     def forward(self, noise, voice_embeds):

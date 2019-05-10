@@ -10,15 +10,16 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
 from data_loader import train_loader
 from model import *
 from config import args_parser
 
+torch.backends.cudnn.benchmark = True
+
 if __name__ == '__main__':
+
     # parse args
     opt = args_parser()
 

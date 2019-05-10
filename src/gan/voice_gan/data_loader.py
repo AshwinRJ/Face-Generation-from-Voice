@@ -7,11 +7,9 @@ import numpy as np
 import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader
-torch.backends.cudnn.benchmark = True
-
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-base_path = "../../../../data/new_images/"
+base_path = "../../../../data/vgg_2000/"
 
 
 def load_json(filename='data.json'):
@@ -25,7 +23,7 @@ def write_to_json(data, filename='data.json'):
         json.dump(data, outfile)
 
 
-class GANDL(torch.utils.data.Dataset):
+class GANDL(Dataset):
     def __init__(self, tuple_set, spk_feats):
         self.tuple_set = tuple_set
         self.voice_embeds = spk_feats
