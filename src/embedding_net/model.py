@@ -8,28 +8,35 @@ import itertools
 ## MODEL ARCHITECTURE- MLP with N-Pair Loss
 
 
-class EmbeddingNet(nn.Module):
-    def __init__(self,hidden_dims=[512,256,128,50],dropout_prob=0.4):
-        super(EmbeddingNet,self).__init__()
+class Classifier(nn.Module):
+    def __init__(self,hidden_dims=[300,150,50],num_classes=5992):
+        super(Classifier,self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512
-        self.hidden_dims = [512] + hidden_dims
+        self.hidden_dims = hidden_dims
         self.layers=[]
+        self.speech_projection = nn.Linear(self.speech_embed_dim,hidden_dims[0])
         ##self.speech_projection = nn.Linear(self.speech_embed_dim,self.hidden_dims[0])
         ##self.image_projection = nn.Linear(self.face_embed_dim,self.hidden_dims[0])
         for i in range(len(self.hidden_dims)-1):
             self.layers.append(nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1]))
-            self.layers.append(nn.ReLU())
+            if i < len(self.hidden_dims)-2:
+                self.layers.append(nn.ReLU())
+            else:
+                self.layers.append(nn.Hardtanh())
             #self.layers.append(nn.Dropout(dropout_prob))
-        self.hiddens = nn.Sequential(*self.layers)
+        self.model = nn.Sequential(*self.layers)
+        print(self.model)
         print("Initialized Model")
 
     def forward(self,voice,faces=None):
         #print("Started Forward",voice.size())
-        speech = self.hiddens(voice)
+        projection = self.speech_projection(voice)
+        speech = self.model(projection)
         if faces is not None:
             # print('I have faces',faces.size())
-            faces = self.hiddens(faces)
+            projection2 = self.speech_projection(faces)
+            faces = self.model(projection2)
         #print('Done forward',speech.size(),faces.size())
         return speech, faces
 
@@ -58,6 +65,7 @@ class NPairLoss():
 
     def forward(self, voice_embeds, face_embeds):
         # print("Loss Forward activated")
+        lst= time.time()
         self.N = len(voice_embeds)
         #anchor_indices = torch.arange(len(voice_embeds))
         #positive_indices = torch.arange(len(face_embeds))
@@ -65,14 +73,18 @@ class NPairLoss():
         # print('Starting listcomp')
         st=time.time()
         negative_indices = np.array([np.delete(array, i) for i in range(len(array))])       
+        #print('Generated neg indices in',time.time()-lst)
         # print('Done listcomp in time',time.time()-st, 'NI shape', negative_indices.shape)  
         anchors = voice_embeds    # (n, embedding_size)
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
-        negatives = torch.stack(([face_embeds[negative_indices[i]] for i in range(self.N)]), dim=0) # (n, n-1, embedding_size)
+        negatives = torch.stack([face_embeds[negative_indices[i]] for i in range(self.N)], dim=0) # (n, n-1, embedding_size)
+        #print('Generated negatives in',time.time()-lst)
         # print('Negatives shape:',negatives.size())
         #print(self.n_pair_loss(anchors,positives,negatives),anchors,negatives,positives)
         #sys.exit(0)
         loss = self.n_pair_loss(anchors, positives, negatives) + self.l2_reg*self.l2_loss(anchors,positives)
+        #print('Got loss in',time.time()-lst)
+        del negatives,positives,anchors 
         return loss
 
     def n_pair_loss(self,anchors, positives, negatives):
@@ -85,11 +97,7 @@ class NPairLoss():
         """
         eps= 1e-10
         anchors = torch.unsqueeze(anchors, dim=1)  # (n, 1, embedding_size)
-        # print(anchors.size())
-        #assert(anchors.size() == (self.N, 1, 512))
         positives = torch.unsqueeze(positives, dim=1)  # (n, 1, embedding_size)
-        # print(positives.size())
-        #assert(positives.size() == (self.N, 1, 512))
         x = torch.matmul(anchors, (negatives - positives).transpose(1, 2))  # (n, 1, n-1)
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
         loss = torch.mean(torch.log(eps+1+x))

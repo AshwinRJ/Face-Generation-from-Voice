@@ -7,6 +7,8 @@ from model import Classifier, NPairLoss
 from tensorboardX import SummaryWriter
 import time
 import numpy as np 
+from dl_speech import write_to_json
+from kaldi_io import read_vec_flt_ark
 torch.backends.cudnn.benchmark=True
 import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -14,11 +16,13 @@ expt_prefix="v3"
 tlog, vlog = SummaryWriter("../../"+expt_prefix+"logs/train_pytorch"), SummaryWriter("../../"+expt_prefix+"logs/val_pytorch")
 load_path="v4logs/model_dict30.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
+train_xvecs = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
+
 
 class TrainValidate():
 
 
-    def __init__(self,hiddens=[300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=2000,weight_decay=1e-3,load=True):
+    def __init__(self,hiddens=[300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=True):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
@@ -38,7 +42,7 @@ class TrainValidate():
             self.init_epoch=self.load(load_path)         
         lp.write(expt_prefix+' Model with hiddens '+str(hiddens)+'\n\n')
         print(self.net)
-        self.run()
+        self.test(train_xvecs)
   
     def pload_state_dict(self,pretrained_dict):
         model_dict = self.net.state_dict()
@@ -103,15 +107,12 @@ class TrainValidate():
         for batch_index,embedding in enumerate(loader):
             self.optimizer.zero_grad()
            # print('Embedding size',embedding.size())
-            es= time.time()
             face_embedding = torch.Tensor(embedding[:,:self.embed_size]).to(device)
             voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
-            #print('Model out in',time.time()-es,'seconds')
             loss = self.criterion(output_face_embed,output_voice_embed)
-            #print('Loss computed in',time.time()-es,'seconds')
-            #if batch_index % 3000 == 0:
-            #    print("Batch index {} has loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
+            if batch_index % 3000 == 0:
+                print("Batch index {} has loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
             epoch_loss += loss.item()
             if update:
                 loss.backward()
@@ -137,9 +138,14 @@ class TrainValidate():
             nn.init.xavier_normal_(m.weight)
             nn.init.constant_(m.bias,0)
     
-    def test(self,embedding):
-        return self.net(embedding).cpu().numpy()
-
+    def test(self,train_xvecs):
+        res={}
+        for i,key in enumerate(list(train_xvecs.keys())):
+            voice_feat = torch.from_numpy(np.array(train_xvecs[key])).float().to(device)
+            output,_ = self.net(voice_feat)
+            res[key] = output.detach().cpu().numpy().tolist()
+        write_to_json(res,'voicenw_embeddings.json')
+    
     def run(self):
         self.train_validate()
         #self.test()
