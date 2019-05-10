@@ -86,20 +86,10 @@ class Discriminator(nn.Module):
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
-
-        self.projection = nn.Sequential(
+        self.main = nn.Sequential(
             # input is (nc) x 64 x 64
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True)
-        )
-
-        self.downsampled_projection = nn.Sequential(
-            # input is (nc) x 32 x 32
-            nn.Conv2d(nc, ndf, 1, 1, 0, bias=False),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-
-        self.main = nn.Sequential(
             # state size. (ndf) x 32 x 32
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
@@ -117,12 +107,8 @@ class Discriminator(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, input, downsampled=False):
-        if downsampled:
-            out = self.downsampled_projection(input)
-        else:
-            out = self.projection(input)
-        return self.main(out)
+    def forward(self, input):
+        return self.main(input)
 
 # Weight initialization
 
