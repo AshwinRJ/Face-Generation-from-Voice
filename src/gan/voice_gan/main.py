@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     # Criterion
     criterion = nn.BCELoss()
-    cosine_criterion = nn.CosineEmbeddingLoss()
+    cosine_criterion = nn.MSELoss() # nn.CosineEmbeddingLoss()
 
     # setup optimizer
     optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -147,14 +147,15 @@ if __name__ == '__main__':
             errG = criterion(output, label)  # G's loss based on all-fake batch output of updated D
 
             D_G_z2 = output.mean().item()
-
+            embedding_loss = 0.0
             # Face embeddings from sphereface:
             # real_face_embeddings = sphereface(real_batch)
             # fake_face_embeddings = sphereface(fake)
-            embedding_loss = cosine_criterion(real_batch, fake)
-            embedding_loss.backward()
+            if epoch > 20:
+                embedding_loss = cosine_criterion(real_batch, fake) / ((64**2))
+            
             G_loss = errG + embedding_loss
-
+            G_loss.backward()
             optimizerG.step()  # Update G
 
             # Output training stats

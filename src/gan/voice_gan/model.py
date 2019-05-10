@@ -9,10 +9,11 @@ from config import args_parser
 
 
 class Custom_generator(nn.Module):
-    def __init__(self, ngpu, joint_hiddens=[300, 150, 50]):
+    def __init__(self, ngpu=1, joint_hiddens=[300, 150, 50]):
         super(Custom_generator, self).__init__()
         self.generator = Generator(ngpu)
         self.joint_embedding = Joint_embedding_net(joint_hiddens)
+        print(self.joint_embedding)
 
     def forward(self, noise, voice_embeds):
         """ Noise --> B x nz x 1 x 1 | Voice embeds --> B x E
@@ -25,7 +26,7 @@ class Custom_generator(nn.Module):
 
 
 class Joint_embedding_net(nn.Module):
-    def __init__(self, hidden_dims=[300, 150, 50], num_classes=5992):
+    def __init__(self, hidden_dims=[300, 150, 50]):
         super(Joint_embedding_net, self).__init__()
         self.speech_embed_dim = 512
         self.face_embed_dim = 512
@@ -37,14 +38,14 @@ class Joint_embedding_net(nn.Module):
             self.layers.append(nn.Linear(self.hidden_dims[i], self.hidden_dims[i+1]))
             if i < len(self.hidden_dims)-2:
                 self.layers.append(nn.ReLU())
-            else:
-                self.layers.append(nn.Hardtanh())
+            #else:
+            #    self.layers.append(nn.Hardtanh())
             # self.layers.append(nn.Dropout(dropout_prob))
         self.model = nn.Sequential(*self.layers)
 
-        def forward(self, voice):
-            projection = self.speech_projection(voice)
-            return self.model(projection)
+    def forward(self, voice):
+        projection = self.speech_projection(voice)
+        return self.model(projection)
 
 
 class Generator(nn.Module):
@@ -74,11 +75,11 @@ class Generator(nn.Module):
             # state size. (nc) x 64 x 64
         )
 
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+    def forward(self, inputs):
+        if inputs.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, inputs, range(self.ngpu))
         else:
-            output = self.main(input)
+            output = self.main(inputs)
         return output
 
 

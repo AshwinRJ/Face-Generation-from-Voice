@@ -10,7 +10,7 @@ def args_parser():
     parser.add_argument('--load_joint_embeddings', default=True,
                         help="Use pretrained joint embeddings")
     parser.add_argument('--load', default='', help="path to saved models")
-    parser.add_argument('--save_name', default='', help="Tag name for saved models")
+    parser.add_argument('--save_name', default='voice_vanilla', help="Tag name for saved models")
     parser.add_argument('--outf', default='saved_models/',
                         help='folder to output images and model checkpoints')
     parser.add_argument('--joint_net_path', type=str, default='../../embedding_net/v4logs/model_dict30.pt',
@@ -22,7 +22,7 @@ def args_parser():
     parser.add_argument('--ndf', type=int, default=64)
     parser.add_argument('--nc', type=int, default=3, help='num of channels')
 
-    parser.add_argument('--bs', type=int, default=128, help='input batch size')
+    parser.add_argument('--bs', type=int, default=256, help='input batch size')
     parser.add_argument('--nepoch', type=int, default=15, help='number of epochs to train for')
     parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
