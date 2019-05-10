@@ -73,18 +73,18 @@ class NPairLoss():
         # print('Starting listcomp')
         st=time.time()
         negative_indices = np.array([np.delete(array, i) for i in range(len(array))])       
-        print('Generated neg indices in',time.time()-lst)
+        #print('Generated neg indices in',time.time()-lst)
         # print('Done listcomp in time',time.time()-st, 'NI shape', negative_indices.shape)  
         anchors = voice_embeds    # (n, embedding_size)
         positives =   face_embeds #embeddings[n_pairs[:, 1]]  # (n, embedding_size)
-        negatives = torch.stack(([face_embeds[negative_indices[i]] for i in range(self.N)]), dim=0) # (n, n-1, embedding_size)
-        print('Generated negatives in',time.time()-lst)
+        negatives = torch.stack([face_embeds[negative_indices[i]] for i in range(self.N)], dim=0) # (n, n-1, embedding_size)
+        #print('Generated negatives in',time.time()-lst)
         # print('Negatives shape:',negatives.size())
         #print(self.n_pair_loss(anchors,positives,negatives),anchors,negatives,positives)
         #sys.exit(0)
         loss = self.n_pair_loss(anchors, positives, negatives) + self.l2_reg*self.l2_loss(anchors,positives)
-        print('Got loss in',time.time()-lst)
-        
+        #print('Got loss in',time.time()-lst)
+        del negatives,positives,anchors 
         return loss
 
     def n_pair_loss(self,anchors, positives, negatives):
@@ -97,11 +97,7 @@ class NPairLoss():
         """
         eps= 1e-10
         anchors = torch.unsqueeze(anchors, dim=1)  # (n, 1, embedding_size)
-        # print(anchors.size())
-        #assert(anchors.size() == (self.N, 1, 512))
         positives = torch.unsqueeze(positives, dim=1)  # (n, 1, embedding_size)
-        # print(positives.size())
-        #assert(positives.size() == (self.N, 1, 512))
         x = torch.matmul(anchors, (negatives - positives).transpose(1, 2))  # (n, 1, n-1)
         x = torch.sum(torch.exp(x), 2)  # (n, 1)
         loss = torch.mean(torch.log(eps+1+x))

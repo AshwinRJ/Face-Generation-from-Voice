@@ -3,7 +3,7 @@ import os
 import torch
 import torch.nn as nn
 from data_loader import get_data_loaders
-from model import EmbeddingNet, NPairLoss
+from model import Classifier, NPairLoss
 from tensorboardX import SummaryWriter
 import time
 import numpy as np 
@@ -12,23 +12,23 @@ import sys
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 expt_prefix="v3"
 tlog, vlog = SummaryWriter("../../"+expt_prefix+"logs/train_pytorch"), SummaryWriter("../../"+expt_prefix+"logs/val_pytorch")
-load_path=expt_prefix+"logs/model_dict0.pt"
+load_path="v4logs/model_dict30.pt"
 lp = open("./"+expt_prefix+"log","w+") ## Output log file
 
 class TrainValidate():
 
 
-    def __init__(self,hiddens=[512,300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=3500,weight_decay=1e-4,load=True):
+    def __init__(self,hiddens=[300,150,50],num_epochs=100,initial_lr=1e-3,batch_size=2000,weight_decay=1e-3,load=True):
         self.num_epochs = num_epochs
         self.bs = batch_size
         self.criterion = NPairLoss()
-        self.net = EmbeddingNet(hiddens).to(device)
+        self.net = Classifier(hiddens).to(device)
         #self.net = torch.nn.DataParallel(self.net,device_ids=[0,1,2,3])
         self.embed_size = 512
         #self.train_loader, self.valid_loader = get_data_loaders()
         self.train_loss = 0.0
         self.valid_loss = 0.0
-        self.patience = 1000
+        self.patience = 10
         self.lr = initial_lr
         self.optimizer =  torch.optim.Adam(self.net.parameters(),lr=self.lr,weight_decay=weight_decay)
         self.init_epoch = 0
@@ -37,8 +37,17 @@ class TrainValidate():
             print('Loading model from past')
             self.init_epoch=self.load(load_path)         
         lp.write(expt_prefix+' Model with hiddens '+str(hiddens)+'\n\n')
+        print(self.net)
         self.run()
   
+    def pload_state_dict(self,pretrained_dict):
+        model_dict = self.net.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(pretrained_dict) 
+        # 3. load the new state dict
+        self.net.load_state_dict(pretrained_dict)
+
 
     def train_validate(self):
         print('Batch size is',self.bs)
@@ -94,12 +103,15 @@ class TrainValidate():
         for batch_index,embedding in enumerate(loader):
             self.optimizer.zero_grad()
            # print('Embedding size',embedding.size())
+            es= time.time()
             face_embedding = torch.Tensor(embedding[:,:self.embed_size]).to(device)
             voice_embedding = torch.Tensor(embedding[:,self.embed_size:]).to(device)
             output_voice_embed,output_face_embed = self.net(voice_embedding,face_embedding) ##Net takes voice, faces
+            #print('Model out in',time.time()-es,'seconds')
             loss = self.criterion(output_face_embed,output_voice_embed)
-            if batch_index % 3000 == 0:
-                print("Batch index {} has loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
+            #print('Loss computed in',time.time()-es,'seconds')
+            #if batch_index % 3000 == 0:
+            #    print("Batch index {} has loss {:5f}, and it has taken {} seconds so far".format(batch_index +1,loss,time.time()-start_time))
             epoch_loss += loss.item()
             if update:
                 loss.backward()
@@ -110,12 +122,12 @@ class TrainValidate():
 
     def load(self,path):
         checkpoint = torch.load(path)
-        self.net.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
-        self.train_loss= checkpoint['loss']
-        self.eval_loss=checkpoint['dev_loss']
-        return epoch
+        self.pload_state_dict(checkpoint['model_state_dict'])
+        #self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        #epoch = checkpoint['epoch']
+        #self.train_loss= checkpoint['loss']
+        #self.eval_loss=checkpoint['dev_loss']
+        return 0
 
     def weights_init(self,m):
         if isinstance(m, nn.BatchNorm2d):

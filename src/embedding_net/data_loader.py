@@ -137,7 +137,7 @@ def get_data_loaders(bs):
     train_face_list = train_face_list[:-200]
     valid_voice_list = train_voice_list[-200:]
     train_voice_list = train_voice_list[:-200]
-    train_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
+    train_xvec = load_json("../../../data/norm_train_xvecs.json") #{ key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
     assert(len(list(train_xvec.keys()))==1092009)
 
     trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
@@ -145,7 +145,7 @@ def get_data_loaders(bs):
     train_spk2utt = {spk:trainval_spk2utt[spk][:-20] for spk in train_voice_list}
     valid_spk2utt = {spk:trainval_spk2utt[spk][-20:] for spk in valid_voice_list}
     ## For Test data
-    test_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
+    test_xvec = load_json("../../../data/norm_test_xvecs.json")#{ key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_test.ark')}
     assert(len(list(test_xvec.keys()))==36237)
     test_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_test','r').readlines()}
     assert(len(list(test_spk2utt.keys()))==118)

@@ -19,7 +19,7 @@ import json
 import logging
 import itertools
 torch.backends.cudnn.benchmark = True
-
+import multiprocessing
 
 device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -50,13 +50,18 @@ class ClassifyDataset(torch.utils.data.Dataset):
         self.voice_data = voice_data
         self.utt_ids = utt_ids
         self.num_class = 5992
+        self.labels = labels
         
 
     def __len__(self):
         return len(self.face_data)
 
     def __getitem__(self, index):
-        return (self.voice_data[self.utt_ids[index]],self.face_data[index],self.labels[index])
+        voice_data = np.array(self.voice_data[self.utt_ids[index]],dtype=np.float32)
+        face_data = np.array(self.face_data[index],dtype=np.float32) 
+        label = self.labels[index]
+        #print(voice_data.shape,face_data.shape,label,"VOICE SHAPE FACE SHAPE, LABEL")
+        return (voice_data,face_data,label)
 
 def get_data_loaders(bs):
     start = time.time()
@@ -80,10 +85,11 @@ def get_data_loaders(bs):
             test_face_list.append(common_meta['VGGFace2 ID '].iloc[i][:-1].strip())
             test_voice_list.append(common_meta['VoxCeleb2 ID '].iloc[i][:-1].strip())
 
-    train_xvec = { key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
+    train_xvec = load_json("../../../data/norm_train_xvecs.json") #{ key.strip():vec.tolist() for key,vec in read_vec_flt_ark('../../../data/xvec_v2_train.ark')}
     assert(len(list(train_xvec.keys()))==1092009)
 
-    trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in open('../../../data/spk2utt_train','r').readlines()}
+    with open('../../../data/spk2utt_train','r') as f:
+        trainval_spk2utt = {line.strip().split(' ')[0]:line.strip().split(' ')[1:] for line in f.readlines()}
     assert(len(list(trainval_spk2utt.keys()))==5994)
     
     train_utt_ids = []
@@ -130,7 +136,7 @@ def get_data_loaders(bs):
     print('Creating loaders with batch_size as ', bs)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=bs, shuffle=True, num_workers=3,pin_memory= True)
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=4,pin_memory = True)
+    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=128, shuffle=False, num_workers=2,pin_memory = True)
     
     print("Time taken for data loading: ", time.time() - start)
     return train_loader,valid_loader,None
