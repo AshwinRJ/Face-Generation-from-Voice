@@ -7,9 +7,11 @@ def args_parser():
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)
     parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
     parser.add_argument('--load', default='', help="path to saved models")
+    parser.add_argument('--manualSeed', type=int, help='manual seed')
     parser.add_argument('--outf', default='saved_models/',
                         help='folder to output images and model checkpoints')
-    parser.add_argument('--manualSeed', type=int, help='manual seed')
+    parser.add_argument('--joint_net_path', type=str, default='saved_models/joint_model.pt',
+                        help='Path to the pretrained Joint Embedding Model')
 
     # Training parameters
     parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')

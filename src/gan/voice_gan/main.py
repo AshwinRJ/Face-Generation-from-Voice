@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
 import torchvision.utils as vutils
@@ -35,36 +34,42 @@ if __name__ == '__main__':
     random.seed(opt.manualSeed)
     torch.manual_seed(opt.manualSeed)
 
-    cudnn.benchmark = True
     # parameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ngpu = int(opt.ngpu)
     nz = int(opt.nz)
     ngf = int(opt.ngf)
     ndf = int(opt.ndf)
-    scale_layer = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2)
+
+    # Models
+    netD = Discriminator(ngpu).to(device)
+    netD.apply(weights_init)
 
     netG = Custom_generator(ngpu).to(device)
     netG.apply(weights_init)
 
-    # Load pretrained joint embedding weights
+    # Load pretrained joint embedding weights in the generator
+    joint_net_ck = torch.load(opt.joint_net_path)
+    pretrained_dict = joint_net_ck['model_state_dict']
 
-    netD = Discriminator(ngpu).to(device)
-    netD.apply(weights_init)
+    model_dict = netG.Joint_embedding_net.state_dict()
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    model_dict.update(pretrained_dict)
+    netG.Joint_embedding_net.load_state_dict(pretrained_dict)
 
-    # Initialize BCELoss function
+    # Criterion
     criterion = nn.BCELoss()
 
     # setup optimizer
     optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
+    # Training parameters
     trained_epoch = 0
+    flag = 1
     real_label = 1
     fake_label = 0
-    flag = 1
-    G_losses = []
-    D_losses = []
+    G_losses, D_losses = [], []
 
     # Fixed Noise for visualization
     fixed_noise = torch.randn(opt.bs, nz // 2, 1, 1, device=device)
@@ -97,9 +102,6 @@ if __name__ == '__main__':
 
             label = torch.full((b_size,), real_label, device=device)
 
-            # Downsample the input image
-            # down_real_cpu = nn.AvgPool2d(2, stride=2)(real_cpu)args =
-
             output = netD(real_cpu).view(-1)  # Forward pass real batch through D
             errD_real = criterion(output, label)  # Calculate loss on all-real batch
 
@@ -113,7 +115,6 @@ if __name__ == '__main__':
 
             fake = netG(gaussian_noise, batch_voice)  # Generate fake image batch
             label.fill_(fake_label)
-            #down_fake = nn.AvgPool2d(2, stride=2)(fake.clone().detach())
 
             output = netD(fake.detach()).view(-1)         # Classify all fake batch with D
             errD_fake = criterion(output, label)  # D's loss on the all-fake batch
