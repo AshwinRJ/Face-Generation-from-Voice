@@ -14,6 +14,7 @@ def args_parser():
     parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
     parser.add_argument('--ngf', type=int, default=64)
     parser.add_argument('--ndf', type=int, default=64)
+    parser.add_argument('--nc', type=int, default=3, help='num of channels')
 
     parser.add_argument('--bs', type=int, default=128, help='input batch size')
     parser.add_argument('--nepoch', type=int, default=15, help='number of epochs to train for')

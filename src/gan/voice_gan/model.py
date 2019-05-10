@@ -11,25 +11,25 @@ from config import args_parser
 class Custom_generator(nn.Module):
     def __init__(self, ngpu, voice_dim=512, embed_dim=50):class sphere20a(nn.Module):
         super(Custom_generator, self).__init__()
-        self.generator = Generator(ngpu)
-        self.projection = Projection_net(voice_dim, embed_dim)
+        self.generator = DC_Generator(ngpu)
+        self.joint_embedding = Joint_embedding_net(voice_dim, embed_dim)
 
     def forward(self, noise, voice_embeds):
         """ Noise --> B x nz x 1 x 1 | Voice embeds --> B x E
         """
-        voice_embeds = self.projection(voice_embeds)  # B x 50
+        voice_embeds = self.joint_embedding(voice_embeds)  # B x 50
         voice_embeds = voice_embeds.unsqueeze(2).unsqueeze(3)  # B x 50 x 1 x 1
 
         input = torch.cat((noise, voice_embeds), dim=1)  # B x 100 x 1 x 1
         return self.generator(input)
 
-class Projection_net(nn.Module):
+class Joint_embedding_net(nn.Module):
     def __init__(self, voice_dim, embed_dim):
-        super(Projection_net, self).__init__()
-        self.projection = nn.Linear(voice_dim, embed_dim)
+        super(Joint_embedding_net, self).__init__()
+        self.joint_embedding = nn.Linear(voice_dim, embed_dim)
 
     def forward(self, input):
-        return self.projection(input)
+        return self.joint_embedding(input)
 
 class Generator(nn.Module):
     def __init__(self, ngpu):
