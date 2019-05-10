@@ -1,7 +1,6 @@
 
 import os
 import random
-import argparse
 from tqdm import tnrange
 import matplotlib.pyplot as plt
 
@@ -44,7 +43,6 @@ if __name__ == '__main__':
     ndf = int(opt.ndf)
     scale_layer = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2)
 
-
     netG = Custom_generator(ngpu).to(device)
     netG.apply(weights_init)
 
@@ -64,8 +62,8 @@ if __name__ == '__main__':
     real_label = 1
     fake_label = 0
     flag = 1
-    G_losses=[]
-    D_losses=[]
+    G_losses = []
+    D_losses = []
 
     # Fixed Noise for visualization
     fixed_noise = torch.randn(opt.bs, nz // 2, 1, 1, device=device)
@@ -145,10 +143,10 @@ if __name__ == '__main__':
             D_G_z2 = output.mean().item()
 
             optimizerG.step()  # Update G
-            if i % 600 ==0:
+            if i % 600 == 0:
                 print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
-                  % (epoch, trained_epoch + opt.nepoch, i, len(train_loader),
-                     errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                      % (epoch, trained_epoch + opt.nepoch, i, len(train_loader),
+                         errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
 
             # Save Losses for plotting later
             G_losses.append(errG.item())
@@ -174,10 +172,10 @@ if __name__ == '__main__':
             save_path = "saved_models/ck_{}.pth.tar".format(epoch+1)
             torch.save(state_dict, save_path)
 
-    fig=plt.figure(figsize=(10,5))
+    fig = plt.figure(figsize=(10, 5))
     plt.title("Generator and Discriminator Loss During Training")
-    plt.plot(G_losses,label="G")
-    plt.plot(D_losses,label="D")
+    plt.plot(G_losses, label="G")
+    plt.plot(D_losses, label="D")
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()

@@ -1,21 +1,12 @@
 #! /bin/python
 
-import torch
-import os
 import json
-import time
-from collections import defaultdict
-import numpy as np
-import pandas as pd
 from PIL import Image
-from tqdm import tqdm
+import numpy as np
+
 import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
-import json
-import logging
-import itertools
 torch.backends.cudnn.benchmark = True
 
 
